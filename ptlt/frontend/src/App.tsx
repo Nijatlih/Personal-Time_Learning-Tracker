@@ -1,3 +1,5 @@
+import React from "react";
+
 const App = () => {
   return (
     <main className="app">
@@ -15,3 +17,4 @@ const App = () => {
 };
 
 export default App;
+
