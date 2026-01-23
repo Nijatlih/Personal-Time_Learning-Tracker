@@ -42,23 +42,32 @@ public class JwtService {
     return generateToken(userId, email, refreshTtlSeconds, Map.of("type", "refresh"));
   }
 
+  public String parseAccessToken(String token) {
+    Claims claims = parse(token);
+    Object type = claims.get("type");
+    if (!"access".equals(type)) {
+      throw new IllegalArgumentException("Invalid token type");
+    }
+    return claims.getSubject();
+  }
+
   private String generateToken(UUID userId, String email, long ttlSeconds, Map<String, Object> extra) {
     Instant now = Instant.now();
     return Jwts.builder()
-        .setSubject(userId.toString())
-        .setIssuedAt(Date.from(now))
-        .setExpiration(Date.from(now.plusSeconds(ttlSeconds)))
-        .addClaims(extra)
-        .addClaims(Map.of("email", email))
-        .signWith(key, SignatureAlgorithm.HS256)
-        .compact();
+            .setSubject(userId.toString())
+            .setIssuedAt(Date.from(now))
+            .setExpiration(Date.from(now.plusSeconds(ttlSeconds)))
+            .addClaims(extra)
+            .addClaims(Map.of("email", email))
+            .signWith(key, SignatureAlgorithm.HS256)
+            .compact();
   }
 
   public Claims parse(String token) {
     return Jwts.parserBuilder()
-        .setSigningKey(key)
-        .build()
-        .parseClaimsJws(token)
-        .getBody();
+            .setSigningKey(key)
+            .build()
+            .parseClaimsJws(token)
+            .getBody();
   }
 }

@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.nijat.ptlt.entity.Workspace;
 import org.springframework.stereotype.Service;
+import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -41,22 +42,7 @@ public class AuthService {
     this.routineService = routineService;
   }
 
-  @Transactional
-  public AuthResponse register(RegisterRequest req) {
-    if (userRepo.existsByEmailIgnoreCase(req.getEmail())) {
-      throw new ApiException(HttpStatus.CONFLICT, "EMAIL_EXISTS", "Email already registered");
-    }
-
-    User user = new User();
-    user.setEmail(req.getEmail().trim().toLowerCase());
-    user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
-    user.setDisplayName(req.getDisplayName());
-    user.setTimezone(req.getTimezone());
-    user = userRepo.save(user);
-
-    Workspace ws = new Workspace();
-    ws.setOwner(user);
-    ws.setName((user.getDisplayName() != null && !user.getDisplayName().isBlank()) ? user.getDisplayName() : "My Workspace");
+  @@ -60,32 +58,33 @@ public class AuthService {
     ws.setType(Workspace.Type.PERSONAL);
     ws = workspaceRepo.save(ws);
 
@@ -69,14 +55,14 @@ public class AuthService {
   @Transactional(readOnly = true)
   public AuthResponse login(LoginRequest req) {
     User user = userRepo.findByEmailIgnoreCase(req.getEmail().trim())
-        .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Invalid credentials"));
+            .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Invalid credentials"));
 
     if (!passwordEncoder.matches(req.getPassword(), user.getPasswordHash())) {
       throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Invalid credentials");
     }
 
     Workspace ws = workspaceRepo.findByOwnerId(user.getId()).stream().findFirst()
-        .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "NO_WORKSPACE", "Workspace missing"));
+            .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "NO_WORKSPACE", "Workspace missing"));
 
     return issueTokens(user, ws);
   }
@@ -84,6 +70,9 @@ public class AuthService {
   private AuthResponse issueTokens(User user, Workspace ws) {
     String access = jwtService.generateToken(user.getId().toString(), user.getEmail(), ACCESS_TOKEN_SECONDS);
     String refresh = jwtService.generateToken(user.getId().toString(), user.getEmail(), REFRESH_TOKEN_SECONDS);
+    UUID userId = user.getId();
+    String access = jwtService.generateAccessToken(userId, user.getEmail());
+    String refresh = jwtService.generateRefreshToken(userId, user.getEmail());
 
     UserDto userDto = new UserDto(user.getId().toString(), user.getEmail(), user.getDisplayName());
     return new AuthResponse(access, refresh, ACCESS_TOKEN_SECONDS, userDto, ws.getId().toString());
