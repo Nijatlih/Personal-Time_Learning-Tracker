@@ -24,9 +24,12 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, UUID> {
     List<Workspace> findByOwnerIdAndDeletedAtIsNull(UUID ownerId);
     
     /**
-     * 查找用户的第一个workspace（用于默认workspace）
+     * 查找用户的第一个未删除workspace（用于登录时选择默认workspace）。
+     *
+     * <p>必须过滤 deleted_at：此前的 findFirstByOwnerId 会把已软删除的 workspace 也选中，
+     * 于是用户重新登录后拿到的 JWT 仍指向"已删除"的 workspace。
      */
-    Optional<Workspace> findFirstByOwnerId(UUID ownerId);
+    Optional<Workspace> findFirstByOwnerIdAndDeletedAtIsNullOrderByCreatedAtAsc(UUID ownerId);
     
     /**
      * 根据ID查找（包含已删除）

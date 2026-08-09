@@ -136,10 +136,22 @@ public class WorkspaceService {
         Workspace workspace = workspaceRepository.findByIdAndDeletedAtIsNull(workspaceId)
                 .orElseThrow(() -> new NotFoundException("Workspace not found"));
         
-        workspace.setDeletedAt(java.time.OffsetDateTime.now());
+        java.time.OffsetDateTime deletedAt = java.time.OffsetDateTime.now();
+        workspace.setDeletedAt(deletedAt);
         workspaceRepository.save(workspace);
-        
-        log.info("Workspace deleted: {} by user: {}", workspaceId, userId);
+
+        // 同事务内软删除成员行。此前只置 workspaces.deleted_at，成员行保持
+        // deleted_at IS NULL，而所有数据服务只校验成员身份、从不检查 workspace 是否存活，
+        // 因此用户重新登录后依然能访问"已删除"workspace 的全部数据 —— 删除形同装饰。
+        List<WorkspaceMember> members =
+                workspaceMemberRepository.findByWorkspaceIdAndDeletedAtIsNull(workspaceId);
+        for (WorkspaceMember m : members) {
+            m.setDeletedAt(deletedAt);
+        }
+        workspaceMemberRepository.saveAll(members);
+
+        log.info("Workspace deleted: {} by user: {} ({} memberships revoked)",
+                workspaceId, userId, members.size());
     }
     
     /**
@@ -153,7 +165,14 @@ public class WorkspaceService {
         if (inviter.getRole() == WorkspaceRole.VIEWER) {
             throw new ForbiddenException("Viewer role cannot invite members");
         }
-        
+
+        // 只有 OWNER 能授予 OWNER。此前仅拦截 VIEWER，然后原样采用 request.getRole()：
+        // EDITOR 可以邀请一个自己控制的账号为 OWNER，用它登录即可满足 delete 的 OWNER 校验，
+        // 两个 HTTP 调用就能从 EDITOR 提权到删除整个 workspace。
+        if (request.getRole() == WorkspaceRole.OWNER && inviter.getRole() != WorkspaceRole.OWNER) {
+            throw new ForbiddenException("Only owner can grant the OWNER role");
+        }
+
         // 查找被邀请用户
         User user = userRepository.findByEmailAndDeletedAtIsNull(request.getEmail())
                 .orElseThrow(() -> new NotFoundException("User not found"));
