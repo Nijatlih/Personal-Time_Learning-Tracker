@@ -73,6 +73,13 @@ com.nijat.ptlt
   依赖但尚未使用 —— 真正验证 14 张表的 Flyway 迁移与 JPA 实体是否匹配需要它。
 - 前端从不存储/使用 refresh token，因此每 15 分钟（access token TTL）强制登出一次。
 - 前端 API client 把每个响应体打到 console，其中包含登录返回的 bearer token。
+- **前端 ESLint 还有 5 个未修复的错误**，CI 中 lint 步骤因此设为不阻塞（`continue-on-error`）。
+  可机械修复的部分（未使用的 import、未使用的参数，共 16 个）已经改掉，剩下的需要真正重构：
+  - `react-hooks/set-state-in-effect` ×4（Dashboard / Routines / Tasks）：页面都是
+    `useEffect(() => { fetchX(); }, [fetchX])` 这种取数写法，要消除得改成 router loader
+    或 react-query 之类的方案。
+  - `react-refresh/only-export-components` ×1（`hooks/useAuth.jsx`）：该文件同时导出
+    `AuthProvider` 组件和 `useAuth` hook，需要拆成两个文件。
 
 ### Security（2026-08-09 审计 —— critical / high 已修复）
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import RoutineService from '../api/RoutineService';
 import { Sun, Moon, CheckCircle2, Zap, Loader2, AlertCircle, TrendingUp } from 'lucide-react';
 

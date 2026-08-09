@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import AuthService from '../api/AuthService';
 import { useAuth } from '../hooks/useAuth';
-import { Mail, Lock, Building, ArrowRight, Loader2, UserPlus } from 'lucide-react';
+import { Mail, Lock, Building, Loader2, UserPlus } from 'lucide-react';
 
 const Register = () => {
   const { login } = useAuth();

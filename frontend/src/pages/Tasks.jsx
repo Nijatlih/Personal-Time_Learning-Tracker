@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import TaskService from '../api/TaskService';
 import { Plus, CheckCircle2, Circle, Tag, AlertCircle, Loader2, X } from 'lucide-react';
 

@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import AnalyticsService from '../api/AnalyticsService';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
-import { Calendar, TrendingUp, Target, RefreshCcw, Info } from 'lucide-react';
+import { TrendingUp, Target, RefreshCcw, Info } from 'lucide-react';
 
 const COLORS = {
   GREEN: '#10b981',
