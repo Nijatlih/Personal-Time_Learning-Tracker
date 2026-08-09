@@ -2,6 +2,7 @@ package com.nijat.ptlt.auth.config;
 
 import com.nijat.ptlt.auth.filter.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -24,7 +25,14 @@ import java.util.List;
 public class SecurityConfig {
     
     private final JwtAuthenticationFilter jwtAuthFilter;
-    
+
+    /**
+     * 允许的跨域来源。默认只有本地开发地址；部署时通过 APP_CORS_ALLOWED_ORIGINS 设置真实域名。
+     */
+    @Value("${app.cors.allowed-origins}")
+    private List<String> allowedOrigins;
+
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -49,8 +57,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // 允许所有来源，这在开发环境下比较方便。生产环境应指定域名。
-        configuration.setAllowedOriginPatterns(List.of("*"));
+        // 显式来源列表，从 app.cors.allowed-origins 读取。
+        // 此前是 setAllowedOriginPatterns(List.of("*")) 搭配 setAllowCredentials(true)：
+        // 等于对任意站点关闭浏览器的同源隔离，任何页面都能带着用户凭据调用本 API。
+        configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
         configuration.setAllowCredentials(true);
