@@ -43,7 +43,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         jwt = authHeader.substring(7);
         try {
             // 2. 验证 Token 有效性
-            if (jwtUtil.validateToken(jwt)) {
+            if (jwtUtil.validateAccessToken(jwt)) {
                 userId = jwtUtil.getUserIdFromToken(jwt);
                 
                 // 3. 构建 Spring Security 的认证对象

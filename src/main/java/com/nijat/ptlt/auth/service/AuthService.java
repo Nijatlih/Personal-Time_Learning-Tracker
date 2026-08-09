@@ -103,7 +103,7 @@ public class AuthService {
         }
         
         // 获取用户的默认workspace（第一个OWNER权限的workspace）
-        Workspace workspace = workspaceRepository.findFirstByOwnerId(user.getId())
+        Workspace workspace = workspaceRepository.findFirstByOwnerIdAndDeletedAtIsNullOrderByCreatedAtAsc(user.getId())
                 .orElseThrow(() -> new UnauthorizedException("No workspace found for user"));
         
         // 生成token
@@ -128,7 +128,7 @@ public class AuthService {
     @Transactional
     public AuthResponse refresh(RefreshRequest request) {
         // 验证refresh token
-        if (!jwtUtil.validateToken(request.getRefreshToken())) {
+        if (!jwtUtil.validateRefreshToken(request.getRefreshToken())) {
             throw new UnauthorizedException("Invalid refresh token");
         }
         
@@ -147,7 +147,7 @@ public class AuthService {
         refreshTokenRepository.save(refreshToken);
         
         // 获取用户的默认workspace
-        Workspace workspace = workspaceRepository.findFirstByOwnerId(userId)
+        Workspace workspace = workspaceRepository.findFirstByOwnerIdAndDeletedAtIsNullOrderByCreatedAtAsc(userId)
                 .orElseThrow(() -> new UnauthorizedException("No workspace found for user"));
         
         // 生成新token

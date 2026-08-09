@@ -19,17 +19,55 @@ import java.util.UUID;
  */
 @Component
 public class JwtUtil {
+    /** Claim distinguishing an access token from a refresh token. */
+    static final String CLAIM_TYPE = "type";
+    static final String TYPE_ACCESS = "access";
+    static final String TYPE_REFRESH = "refresh";
+
+    private static final int MIN_SECRET_BYTES = 32;
+
+    /**
+     * Substrings of secrets that ship with the repository or with examples. This key is the root of
+     * both authentication and tenant isolation — every controller derives userId and workspaceId
+     * from it — so a publicly known value defeats the workspace checks entirely.
+     */
+    private static final String[] PLACEHOLDER_MARKERS = {
+        "change-in-production", "change-me", "changeme", "replace-with", "please-change",
+        "your-256-bit-secret", "secret-key-here"
+    };
+
     private final SecretKey secretKey;
     private final long accessTokenValidity;
     private final long refreshTokenValidity;
-    
+
     public JwtUtil(
             @Value("${jwt.secret}") String secret,
             @Value("${jwt.access-token-validity}") long accessTokenValidity,
             @Value("${jwt.refresh-token-validity}") long refreshTokenValidity) {
+        assertUsableSecret(secret);
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.accessTokenValidity = accessTokenValidity;
         this.refreshTokenValidity = refreshTokenValidity;
+    }
+
+    /** Fails fast at startup rather than signing tokens with a guessable key. */
+    static void assertUsableSecret(String secret) {
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException(
+                    "JWT_SECRET must be set; there is no default signing key");
+        }
+        int length = secret.getBytes(StandardCharsets.UTF_8).length;
+        if (length < MIN_SECRET_BYTES) {
+            throw new IllegalStateException(
+                    "JWT_SECRET must be at least " + MIN_SECRET_BYTES + " bytes, got " + length);
+        }
+        String lower = secret.toLowerCase();
+        for (String marker : PLACEHOLDER_MARKERS) {
+            if (lower.contains(marker)) {
+                throw new IllegalStateException(
+                        "JWT_SECRET must not be a known placeholder value (matched \"" + marker + "\")");
+            }
+        }
     }
     
     /**
@@ -42,6 +80,7 @@ public class JwtUtil {
         return Jwts.builder()
                 .subject(userId.toString())
                 .claim("workspaceId", workspaceId.toString())
+                .claim(CLAIM_TYPE, TYPE_ACCESS)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expiry))
                 .signWith(secretKey)
@@ -57,7 +96,7 @@ public class JwtUtil {
         
         return Jwts.builder()
                 .subject(userId.toString())
-                .claim("type", "refresh")
+                .claim(CLAIM_TYPE, TYPE_REFRESH)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expiry))
                 .signWith(secretKey)
@@ -93,12 +132,24 @@ public class JwtUtil {
     }
     
     /**
-     * 验证token是否有效
+     * 验证 Access Token。
+     *
+     * <p>必须断言 type claim。此前只校验签名与过期时间，因此 Refresh Token 也能当作
+     * Access Token 使用：登出形同虚设，被撤销的 Refresh Token 在其 7 天有效期内仍可调用
+     * 任何只需要 userId 的端点，包括 DELETE /api/v1/workspaces/{id}。
      */
-    public boolean validateToken(String token) {
+    public boolean validateAccessToken(String token) {
+        return hasType(token, TYPE_ACCESS);
+    }
+
+    /** 验证 Refresh Token，拒绝把 Access Token 当作 Refresh Token 使用。 */
+    public boolean validateRefreshToken(String token) {
+        return hasType(token, TYPE_REFRESH);
+    }
+
+    private boolean hasType(String token, String expectedType) {
         try {
-            parseToken(token);
-            return true;
+            return expectedType.equals(parseToken(token).get(CLAIM_TYPE, String.class));
         } catch (Exception e) {
             return false;
         }
