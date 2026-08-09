@@ -2,6 +2,7 @@ package com.nijat.ptlt.sync.service;
 
 import com.nijat.ptlt.common.exception.ConflictException;
 import com.nijat.ptlt.common.exception.ForbiddenException;
+import com.nijat.ptlt.common.exception.NotImplementedException;
 import com.nijat.ptlt.sync.dto.SyncPullRequest;
 import com.nijat.ptlt.sync.dto.SyncPushRequest;
 import com.nijat.ptlt.sync.dto.SyncResponse;
@@ -84,14 +85,14 @@ public class SyncService {
     public SyncResponse push(SyncPushRequest request, UUID workspaceId, UUID userId) {
         // 校验workspace成员身份
         validateWorkspaceAccess(workspaceId, userId);
-        
-        // Phase 0: 仅做占位实现
-        // 完整实现在Phase 1+，需要处理各种实体的version冲突
-        
-        log.debug("Sync push for workspace {}: placeholder implementation", workspaceId);
-        
-        // 返回当前状态作为响应
-        return pull(new SyncPullRequest(), workspaceId, userId);
+
+        // 尚未实现。此前这里忽略整个 request，直接返回 pull() 的结果并包在
+        // ApiResponse.success() 里 —— 离线客户端会收到 200 和一个新游标，据此认为
+        // 队列已被接受并清空发件箱，而服务端其实什么都没写入。那是伪装成成功的数据丢失。
+        // 在真正实现 version 冲突处理之前，必须明确地失败。
+        log.warn("Sync push rejected for workspace {}: not implemented", workspaceId);
+        throw new NotImplementedException(
+                "Sync push is not implemented yet; client changes were NOT persisted");
     }
     
     /**
