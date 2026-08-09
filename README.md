@@ -170,4 +170,13 @@ POST   /api/v1/sync/pull?since={cursor}  同步拉取（仅覆盖 2/14 张表）
 POST   /api/v1/sync/push                 同步推送（占位实现，见 Known Issues）
 ```
 
-完整设计见 [`SDD.md`](SDD.md)。
+---
+
+## 文档
+
+| 文件 | 内容 |
+|---|---|
+| [`docs/AUDIT_2026_08_09.md`](docs/AUDIT_2026_08_09.md) | **完整技术审计** —— 已修复、未修复、下一步 |
+| [`adr/0001-personal-tool-not-a-product.md`](adr/0001-personal-tool-not-a-product.md) | 为什么定位为自用工具而非产品 |
+| [`adr/0002-separate-repositories.md`](adr/0002-separate-repositories.md) | 为什么不与 ContentFlow AI 合并 |
+| [`SDD.md`](SDD.md) | 原始系统设计文档（Phase 0 时期，部分已过时） |
