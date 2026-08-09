@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PTLT Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Auth View -->
+    <div id="auth-view" class="auth-container">
+        <div id="login-card" class="card">
+            <div class="logo">PTLT</div>
+            <h2 style="margin-bottom: 0.5rem">Welcome Back</h2>
+            <p style="color: var(--text-dim); font-size: 0.875rem; margin-bottom: 2rem">Access your productivity vault</p>
+            <div id="login-alert" class="alert alert-error hidden"></div>
+            <form id="login-form">
+                <input type="email" id="login-email" placeholder="Email" required>
+                <input type="password" id="login-password" placeholder="Password" required>
+                <button type="submit" class="primary">Sign In</button>
+            </form>
+            <p style="text-align: center; margin-top: 1.5rem; font-size: 0.875rem; color: var(--text-dim)">
+                New here? <span id="show-register" style="color: var(--accent-primary); cursor: pointer">Create Account</span>
+            </p>
+        </div>
+
+        <div id="register-card" class="card hidden">
+            <div class="logo">PTLT</div>
+            <h2 style="margin-bottom: 0.5rem">Start Journey</h2>
+            <div id="register-alert" class="alert alert-error hidden"></div>
+            <form id="register-form">
+                <input type="email" id="reg-email" placeholder="Email" required>
+                <input type="password" id="reg-password" placeholder="Password (Min 8)" minlength="8" required>
+                <input type="text" id="reg-workspace" placeholder="Initial Workspace Name" required>
+                <button type="submit" class="primary">Register</button>
+            </form>
+            <p style="text-align: center; margin-top: 1.5rem; font-size: 0.875rem; color: var(--text-dim)">
+                Have account? <span id="show-login" style="color: var(--accent-primary); cursor: pointer">Sign In</span>
+            </p>
+        </div>
+    </div>
+
+    <!-- App View -->
+    <div id="app-view" class="app-layout hidden">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">PTLT</div>
+            <nav style="flex: 1">
+                <div class="nav-item active" data-tab="dashboard">
+                    <span style="margin-right: 12px">📊</span> Dashboard
+                </div>
+                <div class="nav-item" data-tab="tasks">
+                    <span style="margin-right: 12px">🎯</span> Tasks
+                </div>
+                <div class="nav-item" data-tab="routines">
+                    <span style="margin-right: 12px">♻️</span> Routines
+                </div>
+                <div class="nav-item" data-tab="analytics">
+                    <span style="margin-right: 12px">📈</span> Analytics
+                </div>
+            </nav>
+            <div class="nav-item" id="logout-btn" style="color: var(--danger)">
+                <span style="margin-right: 12px">退出</span> Logout
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="header">
+                <div>
+                    <h1 id="view-title">Overview</h1>
+                    <p id="current-date" style="color: var(--text-dim); font-size: 0.875rem">Sunday, May 3, 2026</p>
+                </div>
+                <div id="user-info" style="text-align: right">
+                    <div style="font-weight: 600" id="header-user-email">user@example.com</div>
+                    <div style="font-size: 0.75rem; color: var(--accent-primary)" id="current-workspace">My Workspace</div>
+                </div>
+            </header>
+
+            <!-- Dashboard Tab -->
+            <div id="tab-dashboard" class="tab-content">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Stability Score</div>
+                        <div class="stat-value" id="stat-stability">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Status</div>
+                        <div class="stat-value" id="stat-status">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Green Streak</div>
+                        <div class="stat-value" id="stat-green">--</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Uptime</div>
+                        <div class="stat-value" id="stat-uptime">--</div>
+                    </div>
+                </div>
+
+                <div class="content-grid">
+                    <div class="section-card">
+                        <div class="section-title">
+                            Daily Productivity
+                        </div>
+                        <div id="stability-chart" style="height: 300px; display: flex; align-items: flex-end; gap: 8px;">
+                            <!-- Chart bars will be here -->
+                        </div>
+                    </div>
+                    <div class="section-card">
+                        <div class="section-title">Today's Focus</div>
+                        <div id="today-focus-list">
+                            <!-- Short list of tasks -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tasks Tab -->
+            <div id="tab-tasks" class="tab-content hidden">
+                <div class="section-card">
+                    <div class="section-title">
+                        Active Tasks
+                        <button class="primary" style="width: auto; padding: 0.5rem 1rem" id="btn-open-task-modal">+ New Task</button>
+                    </div>
+                    <div id="full-task-list" class="task-container">
+                        <!-- Tasks will be here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Routines Tab -->
+            <div id="tab-routines" class="tab-content hidden">
+                <div class="section-card">
+                    <div class="section-title">
+                        Morning & Evening Routines
+                        <button class="primary" style="width: auto; padding: 0.5rem 1rem" id="btn-open-routine-modal">+ New Definition</button>
+                    </div>
+                    <div id="routine-list" class="routine-container">
+                        <!-- Routines will be here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="task-modal" class="auth-container hidden" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 100; background: rgba(0,0,0,0.8);">
+        <div class="card">
+            <h2>Create New Task</h2>
+            <form id="task-form" style="margin-top: 1.5rem">
+                <input type="text" id="task-title" placeholder="What needs to be done?" required>
+                <textarea id="task-desc" placeholder="Optional description..." style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 0.75rem; padding: 0.75rem; color: white; margin-bottom: 1rem;"></textarea>
+                <select id="task-priority" style="width: 100%; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 0.75rem; padding: 0.75rem; color: white; margin-bottom: 1rem;">
+                    <option value="NORMAL">Normal Priority</option>
+                    <option value="HIGH">High Priority</option>
+                    <option value="LOW">Low Priority</option>
+                </select>
+                <button type="submit" class="primary">Create Task</button>
+                <button type="button" class="link-btn" id="btn-close-task-modal">Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
