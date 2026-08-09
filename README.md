@@ -60,30 +60,35 @@ com.nijat.ptlt
   存在且可用，前端从不调用。这是一个为不存在的数据做的仪表盘。
 - **前端只覆盖了一部分后端。** 已有页面：Login、Register、Dashboard、Tasks、Routines、Analytics。
   **没有 UI** 的模块：DailyRecord、TimeBlock、ScheduleSlot、Bootcamp、Alert、Workspace 管理、Sync。
-- **`SyncService.push` 是占位实现。** 它校验 workspace 成员身份后**完全忽略请求体**，然后返回
-  `pull()` 的结果包在 `ApiResponse.success()` 里。离线客户端会收到 200 和一个新游标，认为队列
-  已被接受并清空发件箱 —— 实际什么都没持久化。另外 `pull()` 只覆盖 14 张表中的 2 张。
+- **`SyncService.push` 尚未实现，现在返回 501。** 它此前校验成员身份后完全忽略请求体，返回
+  `pull()` 的结果包在 `ApiResponse.success()` 里 —— 离线客户端会收到 200 和一个新游标，认为
+  队列已被接受并清空发件箱，实际什么都没持久化。已改为明确失败。另外 `pull()` 只覆盖
+  14 张表中的 2 张，所以离线优先这条路本来也还没打通。
 - **后端 jar 不打包前端。** `pom.xml` 没有 `frontend-maven-plugin`，而 `SecurityConfig` 放行了
   `/`、`/index.html`、`/*.js`、`/*.css` —— 所以直接跑后端 serve 的是
   `src/main/resources/static/` 里那个更早的 vanilla JS 版本，不是 `frontend/` 里的 React 应用。
   两个 UI 并存，赢的是被废弃的那个。
-- **零自动化测试。** `mvn verify` 目前是空跑。
+- **测试极少。** 目前只有 `JwtUtilTest`（11 个用例，覆盖认证层的两个 critical 缺陷）。
+  Service 层、Controller 层、多租户隔离规则均无测试覆盖。`pom.xml` 已声明 Testcontainers
+  依赖但尚未使用 —— 真正验证 14 张表的 Flyway 迁移与 JPA 实体是否匹配需要它。
 - 前端从不存储/使用 refresh token，因此每 15 分钟（access token TTL）强制登出一次。
 - 前端 API client 把每个响应体打到 console，其中包含登录返回的 bearer token。
 
-### Security（2026-08-09 审计，修复中）
+### Security（2026-08-09 审计 —— critical / high 已修复）
 
 多租户隔离本身**实现正确** —— 11 个 Service 都定义了 `validateWorkspaceAccess`，Repository 查询
-一致地按 `workspace_id` 过滤。但认证层有严重问题：
+一致地按 `workspace_id` 过滤。问题都在认证层，现已全部修复：
 
-| 严重度 | 问题 |
-|---|---|
-| critical | `application.yml` 提交了可用的 JWT 默认密钥，且无任何启动守卫。由于每个 Controller 的 `userId` 和 `workspaceId` 都只从 token 派生，这一个密钥是全部认证和全部租户隔离的根 —— 伪造 token 可绕过上面那层正确的隔离 |
-| critical | `JwtUtil.validateToken` 不检查 `type` claim，**refresh token 可当 access token 用**。因此登出无效，被撤销的 token 在其 7 天有效期内仍能调用包括 `DELETE /workspaces/{id}` 在内的所有端点 |
-| high | `workspace` 软删除只置 `workspaces.deleted_at`，成员行不动，且 `findFirstByOwnerId` 不过滤 `deleted_at` —— 用户重新登录后所有数据端点照常工作，删除纯属装饰 |
-| high | `invite` 只挡 VIEWER，之后原样采用请求里的 role —— EDITOR 可以邀请一个自己控制的 OWNER，两个 HTTP 调用即可提权到删库 |
-| high | CORS `allowedOriginPatterns=*` 且 `allowCredentials=true`，浏览器同源隔离全失效 |
-| high | `SyncService.push` 静默丢弃客户端数据并返回成功（见上方 Known Issues） |
+| 严重度 | 问题 | 修复 |
+|---|---|---|
+| critical | `application.yml` 提交了可用的 JWT 默认密钥且无启动守卫。每个 Controller 的 `userId` 和 `workspaceId` 都只从 token 派生，这一个密钥是全部认证和全部租户隔离的根 —— 伪造 token 可绕过上面那层正确的隔离 | 删除默认值；`JwtUtil` 在构造时拒绝空值、<32 字节、以及占位符密钥。**旧密钥视为已泄露** |
+| critical | `validateToken` 不检查 `type` claim，refresh token 可当 access token 用；登出形同虚设，被撤销的 token 7 天内仍能调 `DELETE /workspaces/{id}` | access token 打上 `type=access`；拆分为 `validateAccessToken` / `validateRefreshToken` |
+| high | workspace 软删除只置 `workspaces.deleted_at`，成员行不动，`findFirstByOwnerId` 也不过滤 —— 重新登录后数据照常可访问 | 同事务软删成员行；登录查询加 `AndDeletedAtIsNull` |
+| high | `invite` 只挡 VIEWER，EDITOR 可邀请一个 OWNER，两步提权到删库 | 只有 OWNER 能授予 OWNER |
+| high | CORS `allowedOriginPatterns=*` + `allowCredentials=true` | 改为 `app.cors.allowed-origins` 显式列表 |
+| high | `SyncService.push` 静默丢弃客户端数据并返回 200 | 改为抛 `NotImplementedException` → **501** |
+
+测试：`JwtUtilTest` 11 个用例覆盖上述两个 critical 缺陷。这是本仓库第一批自动化测试。
 
 ---
 
@@ -95,14 +100,18 @@ Java 21+ · Maven 3.8+ · PostgreSQL 12+ · Node 20+
 
 ### 环境变量
 
-| 变量 | 用途 |
-|---|---|
-| `JWT_SECRET` | JWT 签名密钥，至少 32 字节 |
-| `SPRING_DATASOURCE_URL` | PostgreSQL 连接串 |
-| `SPRING_DATASOURCE_PASSWORD` | PostgreSQL 密码 |
+| 变量 | 必需 | 用途 |
+|---|---|---|
+| `JWT_SECRET` | **是** | JWT 签名密钥，至少 32 字节。无默认值，未设置时应用**拒绝启动** |
+| `SPRING_DATASOURCE_URL` | 否 | 默认 `jdbc:postgresql://localhost:5432/ptlt` |
+| `DB_USERNAME` / `DB_PASSWORD` | 否 | 默认 `postgres` / `postgres` |
+| `APP_CORS_ALLOWED_ORIGINS` | 否 | 默认本地开发端口；部署时必须设为真实域名 |
 
-> ⚠️ 目前这些变量都有**可用的提交在仓库里的默认值**（`application.yml`），未设置时应用照常启动并
-> 使用那个公开已知的 JWT 密钥。这是一个已知的 critical 问题，见下方 Security。
+生成密钥：
+
+```bash
+openssl rand -base64 48
+```
 
 ### 数据库
 
