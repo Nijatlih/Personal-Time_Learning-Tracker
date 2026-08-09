@@ -42,6 +42,12 @@ cd frontend && npm ci && npm run build
 
 `JWT_SECRET` 必填 —— 无默认值，未设置或使用占位符时**拒绝启动**（至少 32 字节）。
 
+## 待决事项
+
+仓库目前是 **private**。作为作品集公开这件事原则上同意，但推迟到未修缺陷处理完之后。
+`docs/PRE_PUBLIC_CHECKLIST.md` 记录了待办项和已完成的密钥/隐私扫描结果 —— **不要重复扫描**。
+未经作者确认不要改动仓库可见性。
+
 ## 约定
 
 - 提交信息：**不加 `Co-Authored-By: Claude`、不加 "Generated with Claude Code"** 等任何 AI 尾注。
