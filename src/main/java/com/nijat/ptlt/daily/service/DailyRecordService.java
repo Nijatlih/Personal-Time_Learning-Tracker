@@ -102,8 +102,9 @@ public class DailyRecordService {
             throw new ForbiddenException("Daily record does not belong to this workspace");
         }
         
-        // 乐观锁校验
-        if (request.getVersion() != null && !dailyRecord.getVersion().equals(request.getVersion())) {
+        // 乐观锁校验。version 现在是 @NotNull，缺失会在进入本方法之前就被 @Valid 挡成 400，
+        // 所以这里不再需要（也不该有）null 短路 —— 那等于允许客户端自己关掉冲突检测。
+        if (!dailyRecord.getVersion().equals(request.getVersion())) {
             throw new ConflictException("Daily record version mismatch", toResponse(dailyRecord));
         }
         
