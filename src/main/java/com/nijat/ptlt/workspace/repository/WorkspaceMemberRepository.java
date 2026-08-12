@@ -1,10 +1,7 @@
 package com.nijat.ptlt.workspace.repository;
 
 import com.nijat.ptlt.workspace.entity.WorkspaceMember;
-import com.nijat.ptlt.workspace.entity.WorkspaceRole;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -21,12 +18,6 @@ public interface WorkspaceMemberRepository extends JpaRepository<WorkspaceMember
      */
     Optional<WorkspaceMember> findByWorkspaceIdAndUserIdAndDeletedAtIsNull(
             UUID workspaceId, UUID userId);
-    
-    /**
-     * 查找用户在workspace中的角色
-     */
-    @Query("SELECT wm.role FROM WorkspaceMember wm WHERE wm.workspaceId = :workspaceId AND wm.userId = :userId AND wm.deletedAt IS NULL")
-    Optional<WorkspaceRole> findRoleByWorkspaceIdAndUserId(@Param("workspaceId") UUID workspaceId, @Param("userId") UUID userId);
     
     /**
      * 查找workspace的所有成员

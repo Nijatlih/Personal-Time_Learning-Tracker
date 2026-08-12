@@ -1,13 +1,9 @@
 package com.nijat.ptlt.workspace.service;
 
-import com.nijat.ptlt.auth.entity.User;
-import com.nijat.ptlt.auth.repository.UserRepository;
 import com.nijat.ptlt.common.exception.ConflictException;
 import com.nijat.ptlt.common.exception.ForbiddenException;
 import com.nijat.ptlt.common.exception.NotFoundException;
-import com.nijat.ptlt.common.exception.ValidationException;
 import com.nijat.ptlt.workspace.dto.WorkspaceCreateRequest;
-import com.nijat.ptlt.workspace.dto.WorkspaceInviteRequest;
 import com.nijat.ptlt.workspace.dto.WorkspaceResponse;
 import com.nijat.ptlt.workspace.dto.WorkspaceUpdateRequest;
 import com.nijat.ptlt.workspace.entity.Workspace;
@@ -34,8 +30,7 @@ import java.util.stream.Collectors;
 public class WorkspaceService {
     private final WorkspaceRepository workspaceRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
-    private final UserRepository userRepository;
-    
+
     /**
      * 创建workspace
      */
@@ -51,7 +46,7 @@ public class WorkspaceService {
         WorkspaceMember member = WorkspaceMember.builder()
                 .workspaceId(workspace.getId())
                 .userId(ownerId)
-                .role(WorkspaceRole.OWNER)
+                .role(WorkspaceRole.OWNER)  // 唯一剩下的角色，见 adr/0003
                 .build();
         workspaceMemberRepository.save(member);
         
@@ -93,16 +88,14 @@ public class WorkspaceService {
     
     /**
      * 更新workspace
-     * 必须校验权限（OWNER或EDITOR）和版本号
+     * 必须校验成员身份和版本号
      */
     @Transactional
     public WorkspaceResponse update(UUID workspaceId, WorkspaceUpdateRequest request, UUID userId) {
-        // 校验成员身份和权限
-        WorkspaceMember member = validateMemberAccess(workspaceId, userId);
-        if (member.getRole() == WorkspaceRole.VIEWER) {
-            throw new ForbiddenException("Viewer role cannot update workspace");
-        }
-        
+        // 校验成员身份。角色分支已随 invite 一起删除（见 adr/0003）：
+        // 现在成员只可能是 OWNER，所以"是成员"和"有权限"是同一件事。
+        validateMemberAccess(workspaceId, userId);
+
         Workspace workspace = workspaceRepository.findByIdAndDeletedAtIsNull(workspaceId)
                 .orElseThrow(() -> new NotFoundException("Workspace not found"));
         
@@ -124,16 +117,13 @@ public class WorkspaceService {
     
     /**
      * 删除workspace（软删除）
-     * 必须校验权限（OWNER）
+     * 必须校验成员身份
      */
     @Transactional
     public void delete(UUID workspaceId, UUID userId) {
-        // 校验OWNER权限
-        WorkspaceMember member = validateMemberAccess(workspaceId, userId);
-        if (member.getRole() != WorkspaceRole.OWNER) {
-            throw new ForbiddenException("Only owner can delete workspace");
-        }
-        
+        // 同上：成员只可能是 OWNER，成员身份校验已经等价于 OWNER 校验。
+        validateMemberAccess(workspaceId, userId);
+
         Workspace workspace = workspaceRepository.findByIdAndDeletedAtIsNull(workspaceId)
                 .orElseThrow(() -> new NotFoundException("Workspace not found"));
         
@@ -153,45 +143,6 @@ public class WorkspaceService {
 
         log.info("Workspace deleted: {} by user: {} ({} memberships revoked)",
                 workspaceId, userId, members.size());
-    }
-    
-    /**
-     * 邀请成员
-     * 必须校验权限（OWNER或EDITOR）
-     */
-    @Transactional
-    public void invite(UUID workspaceId, WorkspaceInviteRequest request, UUID inviterId) {
-        // 校验成员身份和权限
-        WorkspaceMember inviter = validateMemberAccess(workspaceId, inviterId);
-        if (inviter.getRole() == WorkspaceRole.VIEWER) {
-            throw new ForbiddenException("Viewer role cannot invite members");
-        }
-
-        // 只有 OWNER 能授予 OWNER。此前仅拦截 VIEWER，然后原样采用 request.getRole()：
-        // EDITOR 可以邀请一个自己控制的账号为 OWNER，用它登录即可满足 delete 的 OWNER 校验，
-        // 两个 HTTP 调用就能从 EDITOR 提权到删除整个 workspace。
-        if (request.getRole() == WorkspaceRole.OWNER && inviter.getRole() != WorkspaceRole.OWNER) {
-            throw new ForbiddenException("Only owner can grant the OWNER role");
-        }
-
-        // 查找被邀请用户
-        User user = userRepository.findByEmailAndDeletedAtIsNull(request.getEmail())
-                .orElseThrow(() -> new NotFoundException("User not found"));
-        
-        // 检查是否已是成员
-        if (workspaceMemberRepository.existsByWorkspaceIdAndUserIdAndDeletedAtIsNull(workspaceId, user.getId())) {
-            throw new ValidationException("User is already a member of this workspace");
-        }
-        
-        // 创建成员关系
-        WorkspaceMember member = WorkspaceMember.builder()
-                .workspaceId(workspaceId)
-                .userId(user.getId())
-                .role(request.getRole())
-                .build();
-        workspaceMemberRepository.save(member);
-        
-        log.info("User {} invited to workspace {} with role {}", user.getId(), workspaceId, request.getRole());
     }
     
     /**

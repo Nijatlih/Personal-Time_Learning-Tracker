@@ -3,7 +3,6 @@ package com.nijat.ptlt.workspace.controller;
 import com.nijat.ptlt.auth.util.JwtUtil;
 import com.nijat.ptlt.common.response.ApiResponse;
 import com.nijat.ptlt.workspace.dto.WorkspaceCreateRequest;
-import com.nijat.ptlt.workspace.dto.WorkspaceInviteRequest;
 import com.nijat.ptlt.workspace.dto.WorkspaceResponse;
 import com.nijat.ptlt.workspace.dto.WorkspaceUpdateRequest;
 import com.nijat.ptlt.workspace.service.WorkspaceService;
@@ -79,13 +78,4 @@ public class WorkspaceController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
     
-    @PostMapping("/{id}/invite")
-    public ResponseEntity<ApiResponse<Void>> invite(
-            @PathVariable UUID id,
-            @Valid @RequestBody WorkspaceInviteRequest request,
-            @RequestHeader("Authorization") String authHeader) {
-        UUID userId = getUserIdFromHeader(authHeader);
-        workspaceService.invite(id, request, userId);
-        return ResponseEntity.ok(ApiResponse.success(null));
-    }
 }
