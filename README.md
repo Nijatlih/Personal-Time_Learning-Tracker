@@ -103,16 +103,21 @@ com.nijat.ptlt
 
 ### 前置要求
 
-Java 21+ · Maven 3.8+ · PostgreSQL 12+ · Node 20+
+Java 21+ · Maven 3.8+ · **PostgreSQL 13+** · Node 20+
+
+> PostgreSQL 必须 13 或更高：每张表的 `DEFAULT gen_random_uuid()` 从 13 起才是内置函数，
+> 12 上需要先 `CREATE EXTENSION pgcrypto`，而迁移里没有这一步 —— 在 12 上第一条
+> `CREATE TABLE` 就会失败。
 
 ### 环境变量
 
 | 变量 | 必需 | 用途 |
 |---|---|---|
 | `JWT_SECRET` | **是** | JWT 签名密钥，至少 32 字节。无默认值，未设置时应用**拒绝启动** |
+| `DB_USERNAME` | **是** | 无默认值。此前默认 `postgres`，凭据缺失时会拿众所周知的默认口令去连库 |
+| `DB_PASSWORD` | **是** | 同上 |
 | `SPRING_DATASOURCE_URL` | 否 | 默认 `jdbc:postgresql://localhost:5432/ptlt` |
-| `DB_USERNAME` / `DB_PASSWORD` | 否 | 默认 `postgres` / `postgres` |
-| `APP_CORS_ALLOWED_ORIGINS` | 否 | 默认本地开发端口；部署时必须设为真实域名 |
+| `APP_CORS_ALLOWED_ORIGINS` | 否 | 默认本地开发端口；部署时必须设为真实域名。逗号分隔，两侧空格会被去掉 |
 
 生成密钥：
 
@@ -141,6 +146,17 @@ cd frontend
 npm install
 npm run dev
 ```
+
+后端**只提供 API，不 serve 任何前端资源**。前端在开发时走 Vite（已配 `/api` 代理到
+8080），生产则构建成静态文件独立托管。
+
+### API 约定
+
+- 更新类端点（6 个 `PUT`）必须在请求体里带上 `version`。这是强制的乐观锁：
+  缺少 `version` 返回 400，`version` 与服务端不符返回 409 并在
+  `error.details.serverState` 里回传服务端当前状态供比对。
+- 认证失败返回 **401**，鉴权失败返回 **403**，两者都是 `ApiResponse` 结构。
+- 收 `startDate`/`endDate` 的端点：区间必须正序，跨度不超过 366 天，否则 400。
 
 ---
 

@@ -28,9 +28,5 @@ public interface TaskRepository extends JpaRepository<Task, UUID> {
      * 根据ID和workspace_id查找（用于多租户隔离）
      */
     Optional<Task> findByIdAndWorkspaceIdAndDeletedAtIsNull(UUID id, UUID workspaceId);
-    
-    /**
-     * 查找核心任务（用于稳定度计算）
-     */
-    List<Task> findByWorkspaceIdAndIsCoreTaskTrueAndDeletedAtIsNull(UUID workspaceId);
+
 }

@@ -40,18 +40,5 @@ public interface RoutineCompletionRepository extends JpaRepository<RoutineComple
             @Param("routineDefinitionId") UUID routineDefinitionId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
-    
-    /**
-     * 统计某个routine定义在日期范围内的完成数量
-     */
-    @Query("SELECT COUNT(rc) FROM RoutineCompletion rc WHERE rc.workspaceId = :workspaceId " +
-           "AND rc.routineDefinitionId = :routineDefinitionId " +
-           "AND rc.completed = true " +
-           "AND rc.date BETWEEN :startDate AND :endDate " +
-           "AND rc.deletedAt IS NULL")
-    long countCompletedByWorkspaceIdAndRoutineDefinitionIdAndDateRange(
-            @Param("workspaceId") UUID workspaceId,
-            @Param("routineDefinitionId") UUID routineDefinitionId,
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate);
+
 }

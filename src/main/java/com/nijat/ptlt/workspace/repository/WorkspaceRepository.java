@@ -30,9 +30,5 @@ public interface WorkspaceRepository extends JpaRepository<Workspace, UUID> {
      * 于是用户重新登录后拿到的 JWT 仍指向"已删除"的 workspace。
      */
     Optional<Workspace> findFirstByOwnerIdAndDeletedAtIsNullOrderByCreatedAtAsc(UUID ownerId);
-    
-    /**
-     * 根据ID查找（包含已删除）
-     */
-    Optional<Workspace> findById(UUID id);
+
 }

@@ -33,20 +33,7 @@ public interface TaskInstanceRepository extends JpaRepository<TaskInstance, UUID
             @Param("workspaceId") UUID workspaceId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
-    
-    /**
-     * 查找某个任务在日期范围内的instances
-     */
-    @Query("SELECT ti FROM TaskInstance ti WHERE ti.workspaceId = :workspaceId " +
-           "AND ti.taskId = :taskId " +
-           "AND ti.date BETWEEN :startDate AND :endDate " +
-           "AND ti.deletedAt IS NULL " +
-           "ORDER BY ti.date DESC")
-    List<TaskInstance> findByWorkspaceIdAndTaskIdAndDateRange(
-            @Param("workspaceId") UUID workspaceId,
-            @Param("taskId") UUID taskId,
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate);
+
     
     /**
      * 查找某一天的所有task instances

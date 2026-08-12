@@ -58,8 +58,12 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // 后端只提供 API，不 serve 任何前端资源，所以这里不再有静态资源放行项。
+                // 此前放行 /、/index.html、/*.js 等，配合 src/main/resources/static/ 里
+                // 那份早已废弃的 vanilla JS SPA —— 直接跑后端时 serve 的就是它，
+                // 而不是 frontend/ 下的 React 应用（React 应用本来也不进 jar）。
+                // 前端现在走 Vite（开发）或独立静态托管（生产）。
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/index.html", "/static/**", "/*.js", "/*.css", "/favicon.ico", "/assets/**").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .anyRequest().authenticated()
                 )

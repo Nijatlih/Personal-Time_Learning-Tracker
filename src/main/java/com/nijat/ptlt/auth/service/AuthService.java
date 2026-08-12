@@ -18,11 +18,13 @@ import com.nijat.ptlt.workspace.repository.WorkspaceMemberRepository;
 import com.nijat.ptlt.workspace.repository.WorkspaceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -40,6 +42,10 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final LoginRateLimiter loginRateLimiter;
+
+    /** 与 JwtUtil 签发 refresh token 时用的是同一个配置项，保证 DB 行与 token 本身同期。 */
+    @Value("${jwt.refresh-token-validity}")
+    private long refreshTokenValidity;
 
     /**
      * 一个固定的 bcrypt 串，不对应任何真实密码。邮箱不存在时拿它去跑一次 matches，
@@ -201,9 +207,14 @@ public class AuthService {
     
     /**
      * 保存refresh token到数据库
+     *
+     * 有效期从 jwt.refresh-token-validity 读，不再写死 7 天。写死的时候，
+     * DB 行的 expires_at 和 token 自己 exp claim 的来源是两个 —— 只要有人调过
+     * 那个配置项，两者就不再一致：配得比 7 天短，token 已过期而 DB 还认为有效；
+     * 配得比 7 天长，DB 先判过期而 token 本身还没到期。
      */
     private void saveRefreshToken(UUID userId, String token) {
-        OffsetDateTime expiresAt = OffsetDateTime.now().plusDays(7);
+        OffsetDateTime expiresAt = OffsetDateTime.now().plus(refreshTokenValidity, ChronoUnit.MILLIS);
         RefreshToken refreshToken = RefreshToken.builder()
                 .userId(userId)
                 .token(token)
