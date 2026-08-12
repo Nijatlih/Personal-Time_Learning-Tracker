@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
+import DailyLog from './pages/DailyLog';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Tasks from './pages/Tasks';
@@ -55,6 +56,7 @@ function App() {
           
           {/* 受保护的私有路由 */}
           <Route path="/" element={<RequireAuth><SystemLayout><Dashboard /></SystemLayout></RequireAuth>} />
+          <Route path="/daily-log" element={<RequireAuth><SystemLayout><DailyLog /></SystemLayout></RequireAuth>} />
           <Route path="/tasks" element={<RequireAuth><SystemLayout><Tasks /></SystemLayout></RequireAuth>} />
           <Route path="/routines" element={<RequireAuth><SystemLayout><Routines /></SystemLayout></RequireAuth>} />
           <Route path="/analytics" element={<RequireAuth><SystemLayout><Analytics /></SystemLayout></RequireAuth>} />

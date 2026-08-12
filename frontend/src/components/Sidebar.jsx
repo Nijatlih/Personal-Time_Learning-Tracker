@@ -1,4 +1,4 @@
-import { LayoutDashboard, CheckSquare, Repeat, BarChart3, LogOut, User } from 'lucide-react';
+import { LayoutDashboard, NotebookPen, CheckSquare, Repeat, BarChart3, LogOut, User } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
@@ -9,6 +9,8 @@ const Sidebar = () => {
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/' },
+    // Daily Log 紧跟 Dashboard：它是全部派生数据的来源，此前根本没有入口
+    { id: 'daily-log', label: 'Daily Log', icon: NotebookPen, path: '/daily-log' },
     { id: 'tasks', label: 'Tasks', icon: CheckSquare, path: '/tasks' },
     { id: 'routines', label: 'Routines', icon: Repeat, path: '/routines' },
     { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/analytics' },
