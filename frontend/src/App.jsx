@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './hooks/useAuth';
+import { AuthProvider } from './hooks/AuthProvider';
+import { useAuth } from './hooks/useAuth';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import DailyLog from './pages/DailyLog';
@@ -10,10 +11,12 @@ import Routines from './pages/Routines';
 import Analytics from './pages/Analytics';
 import './styles/globals.css';
 
-// 认证守卫组件
+// 认证守卫组件。
+//
+// 不再有 loading 分支：AuthProvider 现在用惰性初始值同步地从 localStorage 读回状态，
+// 没有需要等待的阶段，那个分支恒不执行。
 const RequireAuth = ({ children }) => {
-  const { token, loading } = useAuth();
-  if (loading) return <div className="loading-screen">Loading System...</div>;
+  const { token } = useAuth();
   if (!token) return <Navigate to="/login" replace />;
   return children;
 };

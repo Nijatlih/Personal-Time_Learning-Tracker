@@ -38,17 +38,17 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Install
         run: npm ci
-      # Reported but not blocking. 5 pre-existing violations remain, all requiring
-      # real refactors rather than config changes:
-      #   - react-hooks/set-state-in-effect x4 (Dashboard, Routines, Tasks): the
-      #     pages use useEffect(() => { fetchX(); }, [fetchX]); eliminating this
-      #     means moving data fetching to a loader or a query library.
-      #   - react-refresh/only-export-components x1 (hooks/useAuth.jsx): the file
-      #     exports both AuthProvider and the useAuth hook and needs splitting.
-      # Flip this back to blocking once those land. Trivially fixable violations
-      # (unused imports, unused params) were fixed rather than suppressed.
+      # 阻塞项。2026-08-12 起 ESLint 是 0 错误，所以去掉了此前的 continue-on-error。
+      #
+      # 那 5 个遗留错误是这样清掉的（全部改源码，**没有**放宽 eslint.config.js）：
+      #   - react-hooks/set-state-in-effect ×4 —— 取数改成在 effect 里直接写
+      #     .then/.catch，setState 放进 promise 回调；需要手动刷新的地方
+      #     （Tasks）用一个 reloadCount 计数器触发 effect，而不是再调一次取数函数。
+      #   - react-refresh/only-export-components ×1 —— hooks/useAuth.jsx 拆成
+      #     useAuth.js（context + hook）和 AuthProvider.jsx（组件）。
+      #
+      # 如果这一步开始失败：修源码，不要加 continue-on-error 或改规则。
       - name: Lint
         run: npm run lint
-        continue-on-error: true
       - name: Build
         run: npm run build

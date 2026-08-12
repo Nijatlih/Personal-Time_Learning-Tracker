@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import RoutineService from '../api/RoutineService';
 import { Sun, Moon, CheckCircle2, Loader2, AlertCircle, TrendingUp } from 'lucide-react';
 
@@ -79,21 +79,29 @@ const Routines = () => {
   const [notice, setNotice] = useState(null);
   const [completingId, setCompletingId] = useState(null);
 
-  const fetchDefinitions = useCallback(async () => {
-    try {
-      setError(null);
-      const data = await RoutineService.listDefinitions();
-      setDefinitions(data || []);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
+  // 取数只有这一条路径。setState 放在 promise 回调里而不是在 effect 体里调一个
+  // async 取数函数 —— 后者会被 react-hooks/set-state-in-effect 标记。
+  // 参见 Analytics.jsx / DailyLog.jsx / Tasks.jsx 的同一写法。
   useEffect(() => {
-    fetchDefinitions();
-  }, [fetchDefinitions]);
+    let cancelled = false;
+
+    RoutineService.listDefinitions()
+      .then((data) => {
+        if (cancelled) return;
+        setDefinitions(data || []);
+        setError(null);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleComplete = async (id) => {
     setCompletingId(id);

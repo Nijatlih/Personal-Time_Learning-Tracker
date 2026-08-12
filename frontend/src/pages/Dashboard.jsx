@@ -1,8 +1,8 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import DashboardService from '../api/DashboardService';
 import TaskService from '../api/TaskService';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Award, Zap, Activity, CheckCircle2, ArrowRight } from 'lucide-react';
+import { TrendingUp, Award, Zap, Activity, CheckCircle2, ArrowRight, AlertCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
@@ -26,25 +26,38 @@ const Dashboard = () => {
   const [data, setData] = useState(null);
   const [miniTasks, setMiniTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const fetchData = useCallback(async () => {
-    try {
-      const [dash, tasks] = await Promise.all([
-        DashboardService.getDashboard(),
-        TaskService.list('TODO')
-      ]);
-      setData(dash);
-      setMiniTasks(tasks.slice(0, 3));
-    } catch (err) {
-      console.error('Failed to sync dashboard:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
+  // 取数只有这一条路径。setState 放在 promise 回调里而不是在 effect 体里调一个
+  // async 取数函数 —— 后者会被 react-hooks/set-state-in-effect 标记。
+  // 参见 Analytics.jsx / DailyLog.jsx / Tasks.jsx 的同一写法。
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    let cancelled = false;
+
+    Promise.all([
+      DashboardService.getDashboard(),
+      TaskService.list('TODO'),
+    ])
+      .then(([dash, tasks]) => {
+        if (cancelled) return;
+        setData(dash);
+        setMiniTasks(tasks.slice(0, 3));
+        setError(null);
+      })
+      .catch((err) => {
+        // 此前这里只 console.error，页面照常渲染一堆 0 —— 与 Analytics 那条
+        // 缺陷（F7）同形。加上错误横幅，让"拿不到数据"和"数据真的是 0"能区分。
+        console.error(err);
+        if (!cancelled) setError(err.message || '无法加载 Dashboard 数据');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (loading) return <div className="loading-screen">SYNCING SYSTEM...</div>;
 
@@ -60,6 +73,13 @@ const Dashboard = () => {
           <div style={{ fontWeight: '700', fontSize: '1.125rem' }}>{data?.uptimeStreak || 0} Days</div>
         </div>
       </header>
+
+      {/* 与 Tasks/Routines/Analytics 已有的错误横幅写法保持一致 */}
+      {error && (
+        <div className="glass" style={{ padding: '1rem', marginBottom: '2rem', borderColor: 'var(--danger)', color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <AlertCircle size={20} /> {error}
+        </div>
+      )}
 
       {/* --- Key Metrics --- */}
       <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '2.5rem' }}>

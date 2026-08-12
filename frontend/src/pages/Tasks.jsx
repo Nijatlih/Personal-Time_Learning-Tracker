@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import TaskService from '../api/TaskService';
 import { Plus, CheckCircle2, Circle, Tag, AlertCircle, Loader2, X } from 'lucide-react';
 
@@ -12,21 +12,34 @@ const Tasks = () => {
   const [submitting, setSubmitting] = useState(false);
   const [newTask, setNewTask] = useState({ title: '', description: '', isCoreTask: false });
 
-  const fetchTasks = useCallback(async () => {
-    try {
-      setError(null);
-      const data = await TaskService.list();
-      setTasks(data || []);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // 取数只有一条路径：这个 effect。需要刷新的地方 bump reloadCount，而不是再调一次
+  // 取数函数 —— 后者就是 useEffect(() => { fetchTasks(); }, [fetchTasks]) 那个形状，
+  // 会被 react-hooks/set-state-in-effect 标记（规则是静态的，只看 effect 体里有没有
+  // 间接触发 setState 的调用，与 await 在第几句无关）。setState 放在 promise 回调里
+  // 才是它认可的形态，参见 Analytics.jsx / DailyLog.jsx。
+  const [reloadCount, setReloadCount] = useState(0);
+  const reload = () => setReloadCount((n) => n + 1);
 
   useEffect(() => {
-    fetchTasks();
-  }, [fetchTasks]);
+    let cancelled = false;
+
+    TaskService.list()
+      .then((data) => {
+        if (cancelled) return;
+        setTasks(data || []);
+        setError(null);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadCount]);
 
   const handleCreateTask = async (e) => {
     e.preventDefault();
@@ -35,7 +48,7 @@ const Tasks = () => {
       await TaskService.create(newTask);
       setNewTask({ title: '', description: '', isCoreTask: false });
       setShowModal(false);
-      fetchTasks();
+      reload();
     } catch (err) {
       alert(err.message);
     } finally {
@@ -54,7 +67,7 @@ const Tasks = () => {
     } catch (err) {
       // 措辞：这里跟 sync 无关（sync 模块已删除，见 adr/0004），失败的就是完成任务本身
       alert('Failed to complete task: ' + err.message);
-      fetchTasks(); // 失败时回滚
+      reload(); // 失败时回滚
     }
   };
 
