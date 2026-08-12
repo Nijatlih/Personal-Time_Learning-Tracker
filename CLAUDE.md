@@ -28,18 +28,18 @@ Jackson 序列化、共享可变状态、请求校验覆盖面等）。
 
 ## 现在开放的事项
 
-都不是缺陷，是尚未做的取舍：
+**完整清单见 [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md)**（含每条的修法、取舍和"为什么本轮没做"）。
+摘要：
 
-1. **`POST /api/v1/workspaces` 是否还该存在。** 按 `adr/0003`，PTLT 是单用户单 workspace ——
-   token 里的 workspaceId 固定取"最早创建的那个"，没有任何端点能切换。所以这个端点能创建一个
-   此后永远无法访问的 workspace。
-2. **10 个 controller 里重复解析 JWT 的写法。** 每个都自己
-   `authHeader.replace("Bearer ", "")` + `jwtUtil.getUserIdFromToken(token)`，而 filter 已经解析过一次。
-   目前**不是活缺陷**（JWT 是 base64url，不含空格，所以全局 replace 撞不到；filter 也已强制
-   `Bearer ` 前缀），但是重复且脆。正确做法是从 `SecurityContext` 读。
-3. 前端 lint 还有 5 个错误（4× `react-hooks/set-state-in-effect` + 1×
-   `react-refresh/only-export-components`），CI 的 lint 步骤是 `continue-on-error`，
-   原因写在 `.github/workflows/ci.yml` 的注释里。
+1. **P1 —— Analytics 页有两段编造的数据当真实统计展示**（`Analytics.jsx:138,146`）。
+   "85% consistency rate" 是硬编码文案，不来自任何接口。这是唯一一条真正的活缺陷，
+   而且后端端点已就绪、前端 service 方法已写好只是零调用点，成本很低。
+2. **P2 —— `POST /api/v1/workspaces` 能创建一个此后永远访问不到的 workspace**（需要产品决定）。
+3. **P3 —— 11 个 controller 各自重复解析 JWT**（目前不是活缺陷，是重复；34 个集成测试已能兜住重构）。
+4. **P4 —— 前端 5 个 lint 错误**，CI 的 lint 步骤仍是 `continue-on-error`。
+   两条都有了现成修法：`Analytics.jsx` 和 `DailyLog.jsx` 是通过该规则的范例。
+5. **P5 —— 零散项**：favicon 404、`green_streak`/`uptime_streak` 两列的定位、
+   routine 完成率的 `totalDays` 口径。
 
 ## 命令
 
