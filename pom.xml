@@ -8,7 +8,9 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.0</version>
+        <!-- 3.2.x 已 EOL（最后一个补丁 3.2.12），不会再收到 CVE 修复。3.5.x 仍在维护。
+             4.x 需要跨 Spring Framework 7，改动面另算，单独一轮做。 -->
+        <version>3.5.16</version>
         <relativePath/>
     </parent>
 
@@ -57,6 +59,12 @@
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
         </dependency>
+        <!-- Flyway 10（Boot 3.3 起管理）把各数据库的支持拆成了独立模块。缺这个的话
+             flyway-core 找不到能处理 jdbc:postgresql:// 的实现，启动即失败。 -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
 
 
         <!-- JWT -->
@@ -89,16 +97,15 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- 版本交给 spring-boot-dependencies 管理的 testcontainers-bom，不要写死。 -->
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>postgresql</artifactId>
-            <version>1.19.3</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>1.19.3</version>
             <scope>test</scope>
         </dependency>
 
@@ -117,20 +124,12 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
+                    <!-- 此前这里有 fork=true 加 9 个 add-opens 参数，是 Lombok 1.18.36 在
+                         JDK 24+ 上跑注解处理器的变通。1.18.42 原生支持，不再需要；而 fork=true
+                         正是编译诊断被吞掉、构建日志只剩一句 "Compilation failure" 的原因
+                         （见 docs/AUDIT_2026_08_09.md 第 2 节第 3 条）。 -->
                     <source>21</source>
                     <target>21</target>
-                    <fork>true</fork>
-                    <compilerArgs>
-                        <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED</arg>
-                        <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED</arg>
-                        <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
-                        <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED</arg>
-                        <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED</arg>
-                        <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
-                        <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED</arg>
-                        <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
-                        <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
-                    </compilerArgs>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
