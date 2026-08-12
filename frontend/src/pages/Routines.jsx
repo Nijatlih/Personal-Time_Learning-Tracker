@@ -1,6 +1,17 @@
 import { useEffect, useState, useCallback } from 'react';
 import RoutineService from '../api/RoutineService';
-import { Sun, Moon, CheckCircle2, Zap, Loader2, AlertCircle, TrendingUp } from 'lucide-react';
+import { Sun, Moon, CheckCircle2, Loader2, AlertCircle, TrendingUp } from 'lucide-react';
+
+/**
+ * 取本地时区的 YYYY-MM-DD。
+ *
+ * 不能用 toISOString().split('T')[0] —— 那个先转 UTC。在 UTC+2 的时区里
+ * 凌晨 1 点打卡会被记成前一天，打卡日期和用户看到的"今天"对不上。
+ */
+const toLocalDateString = (d) => {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
 
 const RoutineCard = ({ routine, onComplete, completing }) => {
   const isMorning = routine.type === 'MORNING';
@@ -24,13 +35,20 @@ const RoutineCard = ({ routine, onComplete, completing }) => {
         }}>
           {isMorning ? <Sun size={24} /> : <Moon size={24} />}
         </div>
+        {/*
+          此处原本渲染 `+{routine.stabilityImpact} Stability`，但 stabilityImpact
+          在整个 routine 领域里都不存在（实体、DTO、service 都没有这个字段），
+          所以它永远显示的是字面量 "+undefined Stability"。
+          稳定度加成是后端按 RoutineType 定的固定值（morning/evening 各 20 分），
+          不是每条 routine 自带的属性，改用 description 展示真实数据。
+        */}
         <div>
           <h3 style={{ fontSize: '1.125rem', fontWeight: '700', marginBottom: '0.25rem' }}>{routine.name}</h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: '600' }}>
-              <Zap size={14} /> +{routine.stabilityImpact} Stability
+          {routine.description && (
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              {routine.description}
             </div>
-          </div>
+          )}
         </div>
       </div>
       
@@ -58,6 +76,7 @@ const Routines = () => {
   const [definitions, setDefinitions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [notice, setNotice] = useState(null);
   const [completingId, setCompletingId] = useState(null);
 
   const fetchDefinitions = useCallback(async () => {
@@ -78,15 +97,25 @@ const Routines = () => {
 
   const handleComplete = async (id) => {
     setCompletingId(id);
+    setError(null);
+    setNotice(null);
     try {
+      // RoutineCompletionRequest 要的是 { routineDefinitionId, date, completed }，
+      // 三个字段都是 @NotNull。此前这里发的是 { routineDefinitionId, completedAt } ——
+      // completedAt 后端根本不存在，而两个必填字段一个都没发，于是控制器上的 @Valid
+      // 在进 service 之前就把每一次点击挡成 400。这个按钮从未成功过一次。
+      //
+      // 影响比看起来大：routine 完成是稳定度分数里 40 分（morning 20 + evening 20）
+      // 的唯一来源，而 StabilityService 是从 routine_completions 表反查的 ——
+      // 这张表因此一直是空的。
       await RoutineService.recordCompletion({
         routineDefinitionId: id,
-        completedAt: new Date().toISOString()
+        date: toLocalDateString(new Date()),
+        completed: true,
       });
-      // 可以增加一个成功的微反馈，或者重新拉取数据（如果后端支持完成状态显示）
-      alert('Habit tracked! System stability increased.');
+      setNotice('Habit tracked! System stability increased.');
     } catch (err) {
-      alert('Failed to record habit: ' + err.message);
+      setError('Failed to record habit: ' + err.message);
     } finally {
       setCompletingId(null);
     }
@@ -111,6 +140,12 @@ const Routines = () => {
       {error && (
         <div className="glass" style={{ padding: '1rem', marginBottom: '2rem', borderColor: 'var(--danger)', color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <AlertCircle size={20} /> {error}
+        </div>
+      )}
+
+      {notice && (
+        <div className="glass" style={{ padding: '1rem', marginBottom: '2rem', borderColor: 'var(--success)', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <CheckCircle2 size={20} /> {notice}
         </div>
       )}
 

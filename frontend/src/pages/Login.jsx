@@ -18,7 +18,7 @@ const Login = () => {
     setError('');
     try {
       const data = await AuthService.login(email, password);
-      login({ email, userId: data.userId }, data.accessToken);
+      login({ email, userId: data.userId }, data.accessToken, data.refreshToken);
       navigate('/');
     } catch (err) {
       setError(err.message || 'Login failed');

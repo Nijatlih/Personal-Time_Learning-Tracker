@@ -21,7 +21,7 @@ const Register = () => {
     setError('');
     try {
       const data = await AuthService.register(formData.email, formData.password, formData.workspaceName);
-      login({ email: formData.email, userId: data.userId }, data.accessToken);
+      login({ email: formData.email, userId: data.userId }, data.accessToken, data.refreshToken);
       navigate('/');
     } catch (err) {
       setError(err.message || 'Registration failed');
