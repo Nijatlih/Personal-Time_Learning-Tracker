@@ -4,9 +4,11 @@ import com.nijat.ptlt.analytics.dto.RoutineCompletionStatsResponse;
 import com.nijat.ptlt.analytics.dto.StabilitySummaryResponse;
 import com.nijat.ptlt.analytics.dto.TaskCompletionStatsResponse;
 import com.nijat.ptlt.common.exception.ForbiddenException;
+import com.nijat.ptlt.common.util.DateRanges;
 import com.nijat.ptlt.daily.entity.DailyRecord;
 import com.nijat.ptlt.daily.entity.StabilityStatus;
 import com.nijat.ptlt.daily.repository.DailyRecordRepository;
+import com.nijat.ptlt.daily.service.StreakService;
 import com.nijat.ptlt.routine.entity.RoutineCompletion;
 import com.nijat.ptlt.routine.entity.RoutineType;
 import com.nijat.ptlt.routine.repository.RoutineCompletionRepository;
@@ -22,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -47,6 +50,7 @@ public class AnalyticsService {
     @Transactional(readOnly = true)
     public StabilitySummaryResponse getStabilitySummary(
             LocalDate startDate, LocalDate endDate, UUID workspaceId, UUID userId) {
+        DateRanges.validate(startDate, endDate);
         // 校验workspace成员身份
         validateWorkspaceAccess(workspaceId, userId);
         
@@ -77,13 +81,18 @@ public class AnalyticsService {
                         DailyRecord::getStabilityStatus,
                         Collectors.counting()));
         
-        // 计算当前streak（从最近的记录开始）
+        // 计算当前streak。这里的锚点是今天而不是记录自身的日期，是有意的：
+        // "current streak" 的定义就是"截至今天连续了多少天"，没录今天就是 0。
+        // 与 StreakService 按记录锚定的那套区分开 —— 那套算的是"那一天当时的连击"。
+        LocalDate today = LocalDate.now();
         List<DailyRecord> recentRecords = dailyRecordRepository
-                .findRecentByWorkspaceId(workspaceId);
-        
-        int currentGreenStreak = calculateGreenStreak(recentRecords);
-        int currentUptimeStreak = calculateUptimeStreak(recentRecords);
-        
+                .findOnOrBeforeWithLimit(workspaceId, today, StreakService.STREAK_WINDOW_DAYS);
+
+        int currentGreenStreak =
+                StreakService.countStreak(recentRecords, today, StreakService.IS_GREEN);
+        int currentUptimeStreak =
+                StreakService.countStreak(recentRecords, today, StreakService.IS_UP);
+
         // 计算日期范围内的最高streak
         int maxGreenStreak = calculateMaxGreenStreak(records);
         int maxUptimeStreak = calculateMaxUptimeStreak(records);
@@ -106,6 +115,7 @@ public class AnalyticsService {
     @Transactional(readOnly = true)
     public TaskCompletionStatsResponse getTaskCompletionStats(
             LocalDate startDate, LocalDate endDate, UUID workspaceId, UUID userId) {
+        DateRanges.validate(startDate, endDate);
         // 校验workspace成员身份
         validateWorkspaceAccess(workspaceId, userId);
         
@@ -113,38 +123,41 @@ public class AnalyticsService {
         List<TaskInstance> instances = taskInstanceRepository
                 .findByWorkspaceIdAndDateRange(workspaceId, startDate, endDate);
         
-        // 获取所有任务
+        // 获取所有任务（只用来判断哪些是 core task）
         List<com.nijat.ptlt.task.entity.Task> tasks = taskRepository
                 .findByWorkspaceIdAndDeletedAtIsNull(workspaceId);
-        
-        // 统计完成情况
-        long completedTasks = instances.stream()
-                .filter(i -> Boolean.TRUE.equals(i.getCompleted()))
-                .map(TaskInstance::getTaskId)
-                .distinct()
-                .count();
-        
-        long totalTasks = tasks.size();
-        
-        // 计算完成率
-        double completionRate = totalTasks > 0 
-                ? (double) completedTasks / totalTasks * 100.0 
-                : 0.0;
-        
-        // 核心任务统计
-        List<UUID> coreTaskIds = tasks.stream()
+        Set<UUID> coreTaskIds = tasks.stream()
                 .filter(t -> Boolean.TRUE.equals(t.getIsCoreTask()))
                 .map(com.nijat.ptlt.task.entity.Task::getId)
-                .collect(Collectors.toList());
-        
-        long coreTasksCompleted = instances.stream()
-                .filter(i -> Boolean.TRUE.equals(i.getCompleted()))
-                .filter(i -> coreTaskIds.contains(i.getTaskId()))
+                .collect(Collectors.toSet());
+
+        // 分子分母必须取自同一个区间。
+        //
+        // 分母此前用的是 workspace 的全量 Task（无日期过滤），而分子是区间内的 instance ——
+        // 两者不同源。一个有 20 个任务定义的 workspace 查"昨天"这一天，即使当天安排的
+        // 2 个任务全部完成，显示出来的也是 10% 而不是 100%。workspace 用得越久、
+        // 查的区间越窄，这个数字越离谱。
+        //
+        // 正确的分母是"区间内实际有安排（有 instance）的 distinct 任务数"。
+        Set<UUID> scheduledTaskIds = instances.stream()
                 .map(TaskInstance::getTaskId)
-                .distinct()
-                .count();
-        
-        long coreTasksTotal = coreTaskIds.size();
+                .collect(Collectors.toSet());
+        Set<UUID> completedTaskIds = instances.stream()
+                .filter(i -> Boolean.TRUE.equals(i.getCompleted()))
+                .map(TaskInstance::getTaskId)
+                .collect(Collectors.toSet());
+
+        long totalTasks = scheduledTaskIds.size();
+        long completedTasks = completedTaskIds.size();
+
+        double completionRate = totalTasks > 0
+                ? (double) completedTasks / totalTasks * 100.0
+                : 0.0;
+
+        // 核心任务同理：分母是区间内有安排的核心任务数，不是 workspace 的全部核心任务
+        long coreTasksTotal = scheduledTaskIds.stream().filter(coreTaskIds::contains).count();
+        long coreTasksCompleted = completedTaskIds.stream().filter(coreTaskIds::contains).count();
+
         double coreTaskCompletionRate = coreTasksTotal > 0
                 ? (double) coreTasksCompleted / coreTasksTotal * 100.0
                 : 0.0;
@@ -175,6 +188,7 @@ public class AnalyticsService {
     @Transactional(readOnly = true)
     public RoutineCompletionStatsResponse getRoutineCompletionStats(
             LocalDate startDate, LocalDate endDate, UUID workspaceId, UUID userId) {
+        DateRanges.validate(startDate, endDate);
         // 校验workspace成员身份
         validateWorkspaceAccess(workspaceId, userId);
         
@@ -231,96 +245,40 @@ public class AnalyticsService {
     }
     
     /**
-     * 计算Green streak
-     */
-    private int calculateGreenStreak(List<DailyRecord> records) {
-        int streak = 0;
-        LocalDate expectedDate = LocalDate.now();
-        
-        for (DailyRecord record : records) {
-            if (!record.getDate().equals(expectedDate)) {
-                break;
-            }
-            if (record.getStabilityStatus() != StabilityStatus.GREEN) {
-                break;
-            }
-            streak++;
-            expectedDate = expectedDate.minusDays(1);
-        }
-        
-        return streak;
-    }
-    
-    /**
-     * 计算Uptime streak
-     */
-    private int calculateUptimeStreak(List<DailyRecord> records) {
-        int streak = 0;
-        LocalDate expectedDate = LocalDate.now();
-        
-        for (DailyRecord record : records) {
-            if (!record.getDate().equals(expectedDate)) {
-                break;
-            }
-            if (record.getStabilityStatus() == StabilityStatus.GRAY) {
-                break;
-            }
-            streak++;
-            expectedDate = expectedDate.minusDays(1);
-        }
-        
-        return streak;
-    }
-    
-    /**
      * 计算日期范围内的最高Green streak
      */
     private int calculateMaxGreenStreak(List<DailyRecord> records) {
-        if (records.isEmpty()) {
-            return 0;
-        }
-        
-        // 按日期排序
-        records.sort(Comparator.comparing(DailyRecord::getDate));
-        
-        int maxStreak = 0;
-        int currentStreak = 0;
-        LocalDate lastDate = null;
-        
-        for (DailyRecord record : records) {
-            if (record.getStabilityStatus() == StabilityStatus.GREEN) {
-                if (lastDate == null || record.getDate().equals(lastDate.plusDays(1))) {
-                    currentStreak++;
-                } else {
-                    currentStreak = 1;
-                }
-                maxStreak = Math.max(maxStreak, currentStreak);
-            } else {
-                currentStreak = 0;
-            }
-            lastDate = record.getDate();
-        }
-        
-        return maxStreak;
+        return calculateMaxStreak(records, StreakService.IS_GREEN);
     }
-    
+
     /**
      * 计算日期范围内的最高Uptime streak
      */
     private int calculateMaxUptimeStreak(List<DailyRecord> records) {
+        return calculateMaxStreak(records, StreakService.IS_UP);
+    }
+
+    /**
+     * 在给定区间内找最长的连续段。与 StreakService.countStreak 的区别是方向：
+     * 那个从一个锚点往前数一段，这个要遍历整个区间找最长的一段，所以按日期升序扫。
+     *
+     * 入参列表先拷贝再排序 —— 此前直接 records.sort(...) 会把调用方传进来的列表
+     * 原地从倒序改成升序。
+     */
+    private int calculateMaxStreak(List<DailyRecord> records, Predicate<DailyRecord> qualifies) {
         if (records.isEmpty()) {
             return 0;
         }
-        
-        // 按日期排序
-        records.sort(Comparator.comparing(DailyRecord::getDate));
-        
+
+        List<DailyRecord> ascending = new ArrayList<>(records);
+        ascending.sort(Comparator.comparing(DailyRecord::getDate));
+
         int maxStreak = 0;
         int currentStreak = 0;
         LocalDate lastDate = null;
-        
-        for (DailyRecord record : records) {
-            if (record.getStabilityStatus() != StabilityStatus.GRAY) {
+
+        for (DailyRecord record : ascending) {
+            if (qualifies.test(record)) {
                 if (lastDate == null || record.getDate().equals(lastDate.plusDays(1))) {
                     currentStreak++;
                 } else {
@@ -332,10 +290,10 @@ public class AnalyticsService {
             }
             lastDate = record.getDate();
         }
-        
+
         return maxStreak;
     }
-    
+
     /**
      * 校验用户对workspace的访问权限
      */

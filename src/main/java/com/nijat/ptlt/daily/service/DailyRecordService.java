@@ -3,6 +3,7 @@ package com.nijat.ptlt.daily.service;
 import com.nijat.ptlt.common.exception.ConflictException;
 import com.nijat.ptlt.common.exception.ForbiddenException;
 import com.nijat.ptlt.common.exception.NotFoundException;
+import com.nijat.ptlt.common.util.DateRanges;
 import com.nijat.ptlt.daily.dto.DailyRecordCreateRequest;
 import com.nijat.ptlt.daily.dto.DailyRecordResponse;
 import com.nijat.ptlt.daily.dto.DailyRecordUpdateRequest;
@@ -72,10 +73,10 @@ public class DailyRecordService {
         streakService.calculateAndSetStreak(dailyRecord, workspaceId);
         
         dailyRecord = dailyRecordRepository.save(dailyRecord);
-        
-        // 检查并生成Gray Alert
-        alertService.checkAndGenerateGrayAlert(workspaceId);
-        
+
+        // 检查并生成Gray Alert（锚在这条记录的日期上，补录也要能触发）
+        alertService.checkAndGenerateGrayAlert(workspaceId, request.getDate());
+
         log.info("Daily record saved: workspace={}, date={}, score={}",
                 workspaceId, request.getDate(), dailyRecord.getStabilityScore());
         
@@ -126,10 +127,10 @@ public class DailyRecordService {
         streakService.calculateAndSetStreak(dailyRecord, workspaceId);
         
         dailyRecord = dailyRecordRepository.save(dailyRecord);
-        
-        // 检查并生成Gray Alert
-        alertService.checkAndGenerateGrayAlert(workspaceId);
-        
+
+        // 检查并生成Gray Alert（锚在这条记录的日期上，补录也要能触发）
+        alertService.checkAndGenerateGrayAlert(workspaceId, dailyRecord.getDate());
+
         log.info("Daily record updated: workspace={}, date={}", workspaceId, dailyRecord.getDate());
         return toResponse(dailyRecord);
     }
@@ -158,6 +159,7 @@ public class DailyRecordService {
     @Transactional(readOnly = true)
     public List<DailyRecordResponse> getByDateRange(
             LocalDate startDate, LocalDate endDate, UUID workspaceId, UUID userId) {
+        DateRanges.validate(startDate, endDate);
         // 校验workspace成员身份
         validateWorkspaceAccess(workspaceId, userId);
         

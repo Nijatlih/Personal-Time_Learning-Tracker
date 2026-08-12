@@ -32,35 +32,42 @@ public class AlertService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
     
     private static final int GRAY_ALERT_THRESHOLD = 2; // 连续2天GRAY触发告警
+
+    /** 向前扫多少天找连续GRAY。只需要够判阈值，取一个宽松但有界的值。 */
+    private static final int GRAY_SCAN_WINDOW_DAYS = 30;
     
     /**
      * 检查并生成Gray Alert
      * 当连续2天GRAY时生成告警
+     *
+     * anchorDate 是刚刚被写入的那条记录的日期，不是"今天"。此前锚在 LocalDate.now()：
+     * 只要最近一条记录的日期不是今天就立刻 break，grayCount 恒为 0，不产生任何告警。
+     * 而 DailyRecordService 是无条件调用本方法的，不管提交上来的 date 是哪天 ——
+     * 所以补录上周两个 GRAY 天会静默 no-op，全系统唯一的告警功能只在当天录入时可用。
      */
     @Transactional
-    public void checkAndGenerateGrayAlert(UUID workspaceId) {
-        // 获取最近的记录
+    public void checkAndGenerateGrayAlert(UUID workspaceId, LocalDate anchorDate) {
+        // 从锚点当天起向前找连续GRAY。窗口只要够判阈值即可。
         List<DailyRecord> recentRecords = dailyRecordRepository
-                .findRecentByWorkspaceId(workspaceId);
-        
-        // 检查最近是否有连续GRAY
+                .findOnOrBeforeWithLimit(workspaceId, anchorDate, GRAY_SCAN_WINDOW_DAYS);
+
         int grayCount = 0;
-        LocalDate checkDate = LocalDate.now();
-        
+        LocalDate checkDate = anchorDate;
+
         for (DailyRecord record : recentRecords) {
             if (!record.getDate().equals(checkDate)) {
                 break;
             }
-            
+
             if (record.getStabilityStatus() == StabilityStatus.GRAY) {
                 grayCount++;
             } else {
                 break;
             }
-            
+
             checkDate = checkDate.minusDays(1);
         }
-        
+
         // 如果连续GRAY天数达到阈值，生成告警
         if (grayCount >= GRAY_ALERT_THRESHOLD) {
             // 检查是否已有未读的Gray Alert

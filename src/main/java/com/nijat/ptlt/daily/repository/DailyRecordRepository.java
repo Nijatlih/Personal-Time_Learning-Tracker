@@ -35,20 +35,21 @@ public interface DailyRecordRepository extends JpaRepository<DailyRecord, UUID> 
             @Param("endDate") LocalDate endDate);
     
     /**
-     * 查找最近的记录（用于计算streak）
-     */
-    @Query("SELECT dr FROM DailyRecord dr WHERE dr.workspaceId = :workspaceId " +
-           "AND dr.deletedAt IS NULL " +
-           "ORDER BY dr.date DESC")
-    List<DailyRecord> findRecentByWorkspaceId(@Param("workspaceId") UUID workspaceId);
-    
-    /**
-     * 查找最近的N条记录
+     * 查找锚点日期当天及更早的记录，按日期倒序，最多 limit 条。
+     *
+     * 这是所有 streak / 连续 GRAY 计算的唯一入口，两个约束都是必要的：
+     *
+     * - `date <= :anchor`：连续天数必须从被计算的那条记录自己的日期往前数。
+     *   如果把比锚点更新的记录也拿进来，向前走的循环在第一条就会因日期对不上而中断，
+     *   算出来恒为 0。
+     * - `LIMIT`：此前的版本没有上限，一次把 workspace 的全部历史记录load进内存，
+     *   而调用方只会用到最前面连续的那一小段。
      */
     @Query(value = "SELECT * FROM daily_records WHERE workspace_id = :workspaceId " +
-           "AND deleted_at IS NULL " +
+           "AND deleted_at IS NULL AND date <= :anchor " +
            "ORDER BY date DESC LIMIT :limit", nativeQuery = true)
-    List<DailyRecord> findRecentByWorkspaceIdWithLimit(
+    List<DailyRecord> findOnOrBeforeWithLimit(
             @Param("workspaceId") UUID workspaceId,
+            @Param("anchor") LocalDate anchor,
             @Param("limit") int limit);
 }

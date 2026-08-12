@@ -65,12 +65,18 @@ public class RoutineCompletion {
         if (completed == null) {
             completed = false;
         }
+        // INSERT 不触发 @PreUpdate，所以这段必须在这里也写一份。此前只写在 @PreUpdate 里，
+        // 结果最常见的路径 —— 第一次打卡就以 completed=true 落库 —— 会留下
+        // completed=true 而 completed_at=NULL，只有第二次更新同一行才补得上。
+        if (Boolean.TRUE.equals(completed) && completedAt == null) {
+            completedAt = now;
+        }
     }
-    
+
     @PreUpdate
     protected void onUpdate() {
         updatedAt = OffsetDateTime.now();
-        if (completed && completedAt == null) {
+        if (Boolean.TRUE.equals(completed) && completedAt == null) {
             completedAt = OffsetDateTime.now();
         }
     }
