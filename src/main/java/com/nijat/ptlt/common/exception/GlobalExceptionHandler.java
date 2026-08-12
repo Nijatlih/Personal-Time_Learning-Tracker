@@ -69,13 +69,6 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("VALIDATION_FAILED", e.getMessage()));
     }
     
-    @ExceptionHandler(NotImplementedException.class)
-    public ResponseEntity<ApiResponse<Object>> handleNotImplemented(NotImplementedException e) {
-        log.warn("Not implemented: {}", e.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
-                .body(ApiResponse.error("NOT_IMPLEMENTED", e.getMessage()));
-    }
-
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Object>> handleMethodArgumentNotValid(
             MethodArgumentNotValidException e) {

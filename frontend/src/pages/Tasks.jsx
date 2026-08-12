@@ -52,7 +52,8 @@ const Tasks = () => {
     try {
       await TaskService.complete(id);
     } catch (err) {
-      alert('Sync failed: ' + err.message);
+      // 措辞：这里跟 sync 无关（sync 模块已删除，见 adr/0004），失败的就是完成任务本身
+      alert('Failed to complete task: ' + err.message);
       fetchTasks(); // 失败时回滚
     }
   };
