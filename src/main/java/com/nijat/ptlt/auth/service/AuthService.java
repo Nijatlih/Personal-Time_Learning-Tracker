@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -38,7 +39,15 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
-    
+    private final LoginRateLimiter loginRateLimiter;
+
+    /**
+     * 一个固定的 bcrypt 串，不对应任何真实密码。邮箱不存在时拿它去跑一次 matches，
+     * 好让"邮箱不存在"和"密码错"两条路径的耗时相当。见 login()。
+     */
+    private static final String DUMMY_HASH =
+            "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
+
     /**
      * 注册新用户
      * 同时创建默认workspace并设置用户为OWNER
@@ -79,7 +88,8 @@ public class AuthService {
         // 保存refresh token
         saveRefreshToken(user.getId(), refreshToken);
         
-        log.info("User registered: {}", user.getEmail());
+        // 只打 userId，不打原始 email —— 日志会被转发/归档到比数据库宽松得多的地方
+        log.info("User registered: {}", user.getId());
         return AuthResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
@@ -93,27 +103,41 @@ public class AuthService {
      */
     @Transactional
     public AuthResponse login(LoginRequest request) {
+        loginRateLimiter.checkNotLockedOut(request.getEmail());
+
         // 查找用户
-        User user = userRepository.findByEmailAndDeletedAtIsNull(request.getEmail())
-                .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
-        
-        // 验证密码
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+        Optional<User> userOpt = userRepository.findByEmailAndDeletedAtIsNull(request.getEmail());
+
+        // 验证密码。
+        //
+        // 邮箱不存在时也要跑一次 bcrypt，否则两条路径的耗时差得很远：邮箱不存在是
+        // 单次索引查询后立刻返回（亚毫秒），邮箱存在但密码错则要多跑一次 cost 10 的
+        // bcrypt（几十毫秒）。虽然两边返回的消息一样，但响应延迟本身就是一条
+        // 账号枚举侧信道。DUMMY_HASH 是一个固定的、不对应任何真实密码的 bcrypt 串。
+        String hash = userOpt.map(User::getPasswordHash).orElse(DUMMY_HASH);
+        boolean passwordMatches = passwordEncoder.matches(request.getPassword(), hash);
+
+        if (userOpt.isEmpty() || !passwordMatches) {
+            loginRateLimiter.recordFailure(request.getEmail());
             throw new UnauthorizedException("Invalid email or password");
         }
-        
+        User user = userOpt.get();
+
         // 获取用户的默认workspace（第一个OWNER权限的workspace）
         Workspace workspace = workspaceRepository.findFirstByOwnerIdAndDeletedAtIsNullOrderByCreatedAtAsc(user.getId())
                 .orElseThrow(() -> new UnauthorizedException("No workspace found for user"));
-        
+
+        loginRateLimiter.recordSuccess(request.getEmail());
+
         // 生成token
         String accessToken = jwtUtil.generateAccessToken(user.getId(), workspace.getId());
         String refreshToken = jwtUtil.generateRefreshToken(user.getId());
-        
+
         // 保存refresh token
         saveRefreshToken(user.getId(), refreshToken);
-        
-        log.info("User logged in: {}", user.getEmail());
+
+        // 只打 userId，不打原始 email —— 日志会被转发/归档到比数据库宽松得多的地方
+        log.info("User logged in: {}", user.getId());
         return AuthResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)

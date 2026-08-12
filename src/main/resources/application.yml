@@ -4,23 +4,30 @@ spring:
   
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ptlt}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    # 无默认值。此前默认成 postgres/postgres：凭据缺失时不会报错，而是拿一对
+    # 众所周知的默认口令去连库 —— 连上了是安全问题，连不上则报成含糊的连接错误。
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
-  
+
   jpa:
     hibernate:
       ddl-auto: validate
     show-sql: false
+    # 不显式指定 dialect：Hibernate 6 会从 JDBC 元数据自己选，写死反而会触发
+    # HHH90000025 弃用告警。
+    open-in-view: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-  
+
   flyway:
     enabled: true
     locations: classpath:db/migration
-    baseline-on-migrate: true
+    # 关闭。开着的话，目标库非空但没有 flyway_schema_history 时（从不含该表的
+    # pg_dump 恢复、或上次部署留下的残表），Flyway 会静默 baseline 到 V1 并跳过它，
+    # 然后 V2 因为 workspaces 不存在而炸。宁可一开始就明确失败。
+    baseline-on-migrate: false
 
 jwt:
   # No default. JwtUtil rejects a blank, too-short, or known-placeholder value at
@@ -40,5 +47,7 @@ server:
 
 logging:
   level:
-    com.nijat.ptlt: DEBUG
-    org.springframework.security: DEBUG
+    # INFO 而不是 DEBUG。security 的 DEBUG 会把每个请求的完整 filter 链和认证细节
+    # 打进日志，本项目的应用日志同样如此 —— 噪音之外也更容易把敏感信息带出来。
+    com.nijat.ptlt: INFO
+    org.springframework.security: INFO

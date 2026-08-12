@@ -60,8 +60,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception e) {
-            // Token 解析失败，直接放行，由后续的 Security 配置处理 403
-            logger.error("JWT authentication failed: " + e.getMessage());
+            // Token 解析失败，直接放行，由 SecurityConfig 的 entry point 处理成 401。
+            //
+            // 这里是 debug 不是 error：access token 15 分钟就过期，客户端拿着过期 token
+            // 再请求一次是完全正常的行为，每次都打 ERROR 会让正常使用把错误日志刷满，
+            // 基于错误率的告警全部失效。
+            logger.debug("JWT authentication failed: " + e.getMessage());
         }
 
         filterChain.doFilter(request, response);
