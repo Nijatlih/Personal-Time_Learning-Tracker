@@ -3,6 +3,7 @@ package com.nijat.ptlt.workspace.service;
 import com.nijat.ptlt.common.exception.ConflictException;
 import com.nijat.ptlt.common.exception.ForbiddenException;
 import com.nijat.ptlt.common.exception.NotFoundException;
+import com.nijat.ptlt.common.exception.ValidationException;
 import com.nijat.ptlt.workspace.dto.ScheduleSlotCreateRequest;
 import com.nijat.ptlt.workspace.dto.ScheduleSlotResponse;
 import com.nijat.ptlt.workspace.dto.ScheduleSlotUpdateRequest;
@@ -40,7 +41,7 @@ public class ScheduleSlotService {
         // 校验时间范围
         if (request.getEndTime().isBefore(request.getStartTime()) ||
             request.getEndTime().equals(request.getStartTime())) {
-            throw new IllegalArgumentException("End time must be after start time");
+            throw new ValidationException("End time must be after start time");
         }
         
         ScheduleSlot slot = ScheduleSlot.builder()
@@ -113,7 +114,7 @@ public class ScheduleSlotService {
         // 校验时间范围
         if (slot.getEndTime().isBefore(slot.getStartTime()) ||
             slot.getEndTime().equals(slot.getStartTime())) {
-            throw new IllegalArgumentException("End time must be after start time");
+            throw new ValidationException("End time must be after start time");
         }
         
         slot = scheduleSlotRepository.save(slot);

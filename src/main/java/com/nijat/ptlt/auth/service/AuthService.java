@@ -9,6 +9,7 @@ import com.nijat.ptlt.auth.entity.User;
 import com.nijat.ptlt.auth.repository.RefreshTokenRepository;
 import com.nijat.ptlt.auth.repository.UserRepository;
 import com.nijat.ptlt.auth.util.JwtUtil;
+import com.nijat.ptlt.common.exception.ForbiddenException;
 import com.nijat.ptlt.common.exception.UnauthorizedException;
 import com.nijat.ptlt.common.exception.ValidationException;
 import com.nijat.ptlt.workspace.entity.Workspace;
@@ -47,6 +48,10 @@ public class AuthService {
     @Value("${jwt.refresh-token-validity}")
     private long refreshTokenValidity;
 
+    /** 见 assertRegistrationAllowed。 */
+    @Value("${app.registration.enabled:false}")
+    private boolean registrationEnabled;
+
     /**
      * 一个固定的 bcrypt 串，不对应任何真实密码。邮箱不存在时拿它去跑一次 matches，
      * 好让"邮箱不存在"和"密码错"两条路径的耗时相当。见 login()。
@@ -60,11 +65,17 @@ public class AuthService {
      */
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        // 检查邮箱是否已存在
+        assertRegistrationAllowed();
+
+        // 检查邮箱是否已存在。
+        //
+        // 这条消息确实构成账号枚举通道，但它是注册流程里必要的 UX（"换个邮箱"和
+        // "密码格式不对"必须能区分），所以真正的缓解手段是上面那道
+        // assertRegistrationAllowed：注册关闭之后这条分支根本不可达。
         if (userRepository.existsByEmailAndDeletedAtIsNull(request.getEmail())) {
             throw new ValidationException("Email already exists");
         }
-        
+
         // 创建用户
         User user = User.builder()
                 .email(request.getEmail())
@@ -104,6 +115,30 @@ public class AuthService {
                 .build();
     }
     
+    /**
+     * 注册是否放行。
+     *
+     * `/api/v1/auth/**` 是 permitAll，而 register 会创建 user + workspace + 成员关系并
+     * 直接返回 token —— 也就是说此前**任何人只要知道 URL 就能在这个实例上开号**。
+     * 对一个部署在公网上的单人自用工具（adr/0001），这比审计里记的"注册接口会明确回答
+     * 邮箱已存在"要严重得多：枚举只是知道某个邮箱在不在，开放注册是直接进来。
+     *
+     * 规则：库里还没有任何用户时放行（首次部署要能建号），之后必须显式设
+     * `APP_REGISTRATION_ENABLED=true` 才能再注册。这样默认值是安全的那一侧，
+     * 而首次部署又不需要任何额外步骤。
+     *
+     * 用 count() 而不是"未软删除的用户数"：软删除自己的账号之后注册应当仍是关闭的，
+     * 否则删号就变成了重新打开注册的开关。
+     */
+    private void assertRegistrationAllowed() {
+        if (registrationEnabled || userRepository.count() == 0) {
+            return;
+        }
+        log.warn("Registration attempt rejected: registration is closed on this instance");
+        throw new ForbiddenException(
+                "Registration is closed on this instance");
+    }
+
     /**
      * 登录
      */

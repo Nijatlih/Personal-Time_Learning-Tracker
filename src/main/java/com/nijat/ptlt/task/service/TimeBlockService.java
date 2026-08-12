@@ -3,10 +3,12 @@ package com.nijat.ptlt.task.service;
 import com.nijat.ptlt.common.exception.ConflictException;
 import com.nijat.ptlt.common.exception.ForbiddenException;
 import com.nijat.ptlt.common.exception.NotFoundException;
+import com.nijat.ptlt.common.exception.ValidationException;
 import com.nijat.ptlt.task.dto.TimeBlockCreateRequest;
 import com.nijat.ptlt.task.dto.TimeBlockResponse;
 import com.nijat.ptlt.task.dto.TimeBlockUpdateRequest;
 import com.nijat.ptlt.task.entity.TimeBlock;
+import com.nijat.ptlt.task.repository.TaskRepository;
 import com.nijat.ptlt.task.repository.TimeBlockRepository;
 import com.nijat.ptlt.workspace.repository.WorkspaceMemberRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +32,8 @@ import java.util.stream.Collectors;
 public class TimeBlockService {
     private final TimeBlockRepository timeBlockRepository;
     private final WorkspaceMemberRepository workspaceMemberRepository;
-    
+    private final TaskRepository taskRepository;
+
     /**
      * 创建time block
      */
@@ -38,13 +41,15 @@ public class TimeBlockService {
     public TimeBlockResponse create(TimeBlockCreateRequest request, UUID workspaceId, UUID userId) {
         // 校验workspace成员身份
         validateWorkspaceAccess(workspaceId, userId);
-        
+
         // 校验时间范围
         if (request.getEndTime().isBefore(request.getStartTime()) ||
             request.getEndTime().equals(request.getStartTime())) {
-            throw new IllegalArgumentException("End time must be after start time");
+            throw new ValidationException("End time must be after start time");
         }
-        
+
+        validateTaskBelongsToWorkspace(request.getTaskId(), workspaceId);
+
         TimeBlock timeBlock = TimeBlock.builder()
                 .workspaceId(workspaceId)
                 .taskId(request.getTaskId())
@@ -130,6 +135,7 @@ public class TimeBlockService {
         
         // 更新字段
         if (request.getTaskId() != null) {
+            validateTaskBelongsToWorkspace(request.getTaskId(), workspaceId);
             timeBlock.setTaskId(request.getTaskId());
         }
         if (request.getDate() != null) {
@@ -151,7 +157,7 @@ public class TimeBlockService {
         // 校验时间范围
         if (timeBlock.getEndTime().isBefore(timeBlock.getStartTime()) ||
             timeBlock.getEndTime().equals(timeBlock.getStartTime())) {
-            throw new IllegalArgumentException("End time must be after start time");
+            throw new ValidationException("End time must be after start time");
         }
         
         timeBlock = timeBlockRepository.save(timeBlock);
@@ -178,6 +184,27 @@ public class TimeBlockService {
         log.info("Time block deleted: workspace={}, id={}", workspaceId, id);
     }
     
+    /**
+     * 校验 taskId 指向的 task 确实属于当前 workspace。
+     *
+     * 此前 create 和 update 都把 request.getTaskId() 原样写进实体，不做任何校验 ——
+     * 这是全仓唯一一处真正的跨租户引用（IDOR）：调用方可以拿到别人 workspace 里某个
+     * task 的 UUID，在自己的 workspace 里建一个 time block 指向它。数据库层面也拦不住，
+     * time_blocks.task_id 的外键只约束"这个 task 存在"，不约束它属于谁。
+     *
+     * 后果不只是数据脏：TimeBlockResponse 会把这个 taskId 原样返回，等于确认了
+     * "这个 UUID 在系统里存在"，成为一个存在性预言机。
+     *
+     * taskId 可空（time block 允许不关联任何 task），所以 null 直接放过。
+     */
+    private void validateTaskBelongsToWorkspace(UUID taskId, UUID workspaceId) {
+        if (taskId == null) {
+            return;
+        }
+        taskRepository.findByIdAndWorkspaceIdAndDeletedAtIsNull(taskId, workspaceId)
+                .orElseThrow(() -> new NotFoundException("Task not found"));
+    }
+
     /**
      * 校验用户对workspace的访问权限
      */
