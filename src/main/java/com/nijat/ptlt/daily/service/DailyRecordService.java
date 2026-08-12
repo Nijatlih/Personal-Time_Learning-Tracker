@@ -170,8 +170,9 @@ public class DailyRecordService {
         List<DailyRecord> records = dailyRecordRepository
                 .findByWorkspaceIdAndDateRange(workspaceId, startDate, endDate);
         
-        // 为每条记录计算streak
-        records.forEach(record -> streakService.calculateAndSetStreak(record, workspaceId));
+        // 为每条记录计算streak。批量版本只查一次库 —— 逐条调用是个 N+1，
+        // 拉一个 366 天的区间就会发 366 条各带 LIMIT 400 的查询。
+        streakService.calculateAndSetStreaks(records, workspaceId);
         
         return records.stream()
                 .map(this::toResponse)

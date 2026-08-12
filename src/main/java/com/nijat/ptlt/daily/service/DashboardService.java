@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -48,29 +50,34 @@ public class DashboardService {
         List<DailyRecord> recentRecords = dailyRecordRepository
                 .findByWorkspaceIdAndDateRange(workspaceId, startDate, today);
         
-        // 为每条记录计算streak
-        recentRecords.forEach(record -> streakService.calculateAndSetStreak(record, workspaceId));
-        
+        // 为每条记录计算streak。批量版本只查一次库 —— 逐条调用是个 N+1：
+        // 30 条记录加今天那条就是 31 条各带 LIMIT 400 的查询（最多约 12000 行），
+        // 而它们查的是同一个 workspace 的同一段历史，只是锚点不同。
+        streakService.calculateAndSetStreaks(recentRecords, workspaceId);
+
         // 构建响应
         DashboardResponse.DashboardResponseBuilder builder = DashboardResponse.builder();
-        
-        if (todayRecord != null) {
-            // 计算今天的streak
-            streakService.calculateAndSetStreak(todayRecord, workspaceId);
-            
-            builder.currentStabilityScore(todayRecord.getStabilityScore())
-                    .currentStabilityStatus(todayRecord.getStabilityStatus())
-                    .greenStreak(todayRecord.getGreenStreak())
-                    .uptimeStreak(todayRecord.getUptimeStreak());
-        } else {
-            // 如果没有今天的记录，从最近的记录获取streak
-            if (!recentRecords.isEmpty()) {
-                DailyRecord latest = recentRecords.get(0);
-                builder.greenStreak(latest.getGreenStreak())
-                        .uptimeStreak(latest.getUptimeStreak());
-            }
+
+        // "当前 streak" 一律锚在今天，与 AnalyticsService 的 currentGreenStreak 口径一致。
+        //
+        // 此前没有今天的记录时，这里取 recentRecords.get(0)（最近一条）的 streak 当作
+        // 当前值 —— 而在 streak 改成按记录自身日期锚定之后，那个值的含义是
+        // "截至那一天的连击"。于是五天没录的人，Dashboard 会显示"连击 10 天"，
+        // 把一个早已中断的连续段报成仍在进行中。没录今天，连续段就是断的。
+        List<DailyRecord> streakBasis = new ArrayList<>(recentRecords);
+        if (todayRecord != null && recentRecords.stream().noneMatch(r -> r.getDate().equals(today))) {
+            streakBasis.add(todayRecord);
         }
-        
+        streakBasis.sort(Comparator.comparing(DailyRecord::getDate).reversed());
+
+        builder.greenStreak(StreakService.countStreak(streakBasis, today, StreakService.IS_GREEN))
+                .uptimeStreak(StreakService.countStreak(streakBasis, today, StreakService.IS_UP));
+
+        if (todayRecord != null) {
+            builder.currentStabilityScore(todayRecord.getStabilityScore())
+                    .currentStabilityStatus(todayRecord.getStabilityStatus());
+        }
+
         // 转换为响应DTO
         List<DailyRecordResponse> recordResponses = recentRecords.stream()
                 .map(this::toResponse)

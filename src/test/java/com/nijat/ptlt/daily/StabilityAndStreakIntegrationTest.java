@@ -120,6 +120,41 @@ class StabilityAndStreakIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("Dashboard 的当前 streak 锚在今天：没录今天就是 0，不报一个早已中断的连击")
+    void dashboardCurrentStreakIsAsOfToday() throws Exception {
+        Account acc = newAccount();
+        LocalDate today = LocalDate.now();
+
+        // 截至前天的连续 3 天非 GRAY，但今天和昨天都没录
+        putRecord(acc, today.minusDays(4), true, "HIGH", true);
+        putRecord(acc, today.minusDays(3), true, "HIGH", true);
+        putRecord(acc, today.minusDays(2), true, "HIGH", true);
+
+        JsonNode dashboard = dataOf(getJson("/api/v1/dashboard", acc.accessToken()));
+
+        // 旧实现取 recentRecords.get(0)（最近一条）的 streak 当作"当前"值，
+        // 在 streak 改成按记录自身日期锚定之后，那会把"截至前天的 3 天连击"
+        // 报成仍在进行中。没录今天，连续段就是断的。
+        assertThat(dashboard.get("uptimeStreak").asInt()).isZero();
+        assertThat(dashboard.get("greenStreak").asInt()).isZero();
+
+        // 但历史记录本身仍带着各自那天正确的 streak
+        JsonNode recent = dashboard.get("recentRecords");
+        assertThat(recent).isNotEmpty();
+        int maxUptimeInHistory = 0;
+        for (JsonNode row : recent) {
+            maxUptimeInHistory = Math.max(maxUptimeInHistory, row.get("uptimeStreak").asInt());
+        }
+        assertThat(maxUptimeInHistory).isEqualTo(3);
+
+        // 补上今天之后，当前 streak 应该接上（前天、昨天缺口仍在，所以只算今天这一天）
+        putRecord(acc, today, true, "HIGH", true);
+        JsonNode afterToday = dataOf(getJson("/api/v1/dashboard", acc.accessToken()));
+        assertThat(afterToday.get("uptimeStreak").asInt()).isEqualTo(1);
+        assertThat(afterToday.get("currentStabilityScore").asInt()).isEqualTo(60);
+    }
+
+    @Test
     @DisplayName("日期区间参数颠倒或过大时返回 400，而不是静默返回空集")
     void invalidDateRangeIsRejected() throws Exception {
         Account acc = newAccount();
