@@ -97,6 +97,19 @@ com.nijat.ptlt
 
 测试：`JwtUtilTest` 11 个用例覆盖上述两个 critical 缺陷。这是本仓库第一批自动化测试。
 
+**2026-08-12 更新**：测试数从 11 增到 33。新增的 22 个是 Testcontainers 集成测试
+（真实 PostgreSQL 16，跑完整 Spring 上下文），每一个都对应一条真实修过的缺陷：
+
+| 测试类 | 覆盖 |
+|---|---|
+| `SchemaContractTest` | 迁移从空库重放、14 张表齐全、`ddl-auto: validate` 契约、V5/V6 的约束 |
+| `AuthFlowIntegrationTest` | 401 语义、token 摘要存储、轮换与重用即失陷、logout 校验、登录限流 |
+| `ApiSemanticsIntegrationTest` | 400/404/405 分类、强制乐观锁、跨租户 `taskId`、已删端点 |
+| `StabilityAndStreakIntegrationTest` | routine 打卡契约与 20 分、按记录锚定的 streak、补录触发告警 |
+| `TaskCompletionStatsIntegrationTest` | 完成率分子分母同源 |
+
+跑它们需要本机有可用的 Docker daemon。
+
 ---
 
 ## 快速开始

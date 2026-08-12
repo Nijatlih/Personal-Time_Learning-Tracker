@@ -15,6 +15,11 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
+      # `verify` 现在包含 Testcontainers 集成测试，会拉起一个真实的
+      # postgres:16-alpine 容器。ubuntu-latest 自带 Docker daemon，无需额外配置。
+      # 换用不提供 Docker 的 runner 时这一步会失败 —— 那不是配置问题：
+      # 迁移重放和 ddl-auto: validate 的契约只有对真实 PostgreSQL 才有意义，
+      # 不要为了让它跑起来换成内存库。
       - name: Build & Test
         run: mvn -B clean verify
 

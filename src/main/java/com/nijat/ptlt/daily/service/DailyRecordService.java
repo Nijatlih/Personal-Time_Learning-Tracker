@@ -126,7 +126,11 @@ public class DailyRecordService {
         // 重新计算streak
         streakService.calculateAndSetStreak(dailyRecord, workspaceId);
         
-        dailyRecord = dailyRecordRepository.save(dailyRecord);
+        // saveAndFlush 而不是 save：@Version 只在 flush 时递增，而 save() 对一个已被管理的
+        // 实体不会立刻 flush。不 flush 就构造响应，返回的 version 是**递增前**的旧值 ——
+        // 客户端照着响应里的 version 发下一次更新，必然撞 409，连续编辑因此完全不可能
+        // （version 现在是必填的，这个后果被放大了）。
+        dailyRecord = dailyRecordRepository.saveAndFlush(dailyRecord);
 
         // 检查并生成Gray Alert（锚在这条记录的日期上，补录也要能触发）
         alertService.checkAndGenerateGrayAlert(workspaceId, dailyRecord.getDate());

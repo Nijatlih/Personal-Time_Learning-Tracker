@@ -1,0 +1,36 @@
+# 集成测试用的配置。datasource 由 AbstractIntegrationTest 的 @DynamicPropertySource
+# 指向 Testcontainers 起的那个 PostgreSQL，所以这里不写 url/用户名/密码。
+#
+# 其余项刻意与 application.yml 保持一致 —— 特别是 ddl-auto: validate 和
+# baseline-on-migrate: false：这两个正是测试要覆盖的契约，在测试里放宽它们
+# 等于把要验证的东西关掉。
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: false
+
+jwt:
+  # 仅测试用。32 字节以上且不含 JwtUtil 的占位符标记。
+  secret: test-only-signing-key-2f8b1d6e4a9c0357be71
+  access-token-validity: 900000
+  refresh-token-validity: 604800000
+
+app:
+  registration:
+    # 测试需要建多个隔离的租户。生产默认是 false（见 AuthService.assertRegistrationAllowed）。
+    enabled: true
+  cors:
+    allowed-origins: http://localhost:5173
+
+logging:
+  level:
+    com.nijat.ptlt: WARN
+    org.springframework: WARN
+    org.flywaydb: INFO
+    org.testcontainers: WARN
+    com.github.dockerjava: WARN

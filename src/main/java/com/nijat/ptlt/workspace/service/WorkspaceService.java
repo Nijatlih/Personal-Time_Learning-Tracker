@@ -109,7 +109,11 @@ public class WorkspaceService {
         if (request.getName() != null) {
             workspace.setName(request.getName());
         }
-        workspace = workspaceRepository.save(workspace);
+        // saveAndFlush 而不是 save：@Version 只在 flush 时递增，而 save() 对一个已被管理的
+        // 实体不会立刻 flush。不 flush 就构造响应，返回的 version 是**递增前**的旧值 ——
+        // 客户端照着响应里的 version 发下一次更新，必然撞 409，连续编辑因此完全不可能
+        // （version 现在是必填的，这个后果被放大了）。
+        workspace = workspaceRepository.saveAndFlush(workspace);
         
         log.info("Workspace updated: {} by user: {}", workspaceId, userId);
         return toResponse(workspace);

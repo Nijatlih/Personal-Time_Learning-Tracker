@@ -160,7 +160,11 @@ public class TimeBlockService {
             throw new ValidationException("End time must be after start time");
         }
         
-        timeBlock = timeBlockRepository.save(timeBlock);
+        // saveAndFlush 而不是 save：@Version 只在 flush 时递增，而 save() 对一个已被管理的
+        // 实体不会立刻 flush。不 flush 就构造响应，返回的 version 是**递增前**的旧值 ——
+        // 客户端照着响应里的 version 发下一次更新，必然撞 409，连续编辑因此完全不可能
+        // （version 现在是必填的，这个后果被放大了）。
+        timeBlock = timeBlockRepository.saveAndFlush(timeBlock);
         
         log.info("Time block updated: workspace={}, id={}", workspaceId, id);
         return toResponse(timeBlock);
