@@ -26,6 +26,16 @@ public class JwtUtil {
 
     private static final int MIN_SECRET_BYTES = 32;
 
+    /*
+     * 两种 token 都带一个随机 jti。
+     *
+     * 没有它的时候，token 的全部内容就是 sub + type + iat + exp（access token 再多一个
+     * workspaceId），而 JWT 的 iat/exp 只精确到秒 —— 同一个用户在同一秒内签发的两个 token
+     * 是逐字节相同的字符串。refresh_tokens.token 上有 UNIQUE 约束，于是"登录之后立刻刷新"
+     * 这条路径会直接撞唯一约束失败（此前表现为 500，补了 DataIntegrityViolation 处理器
+     * 之后表现为 409）。jti 让每个 token 无条件唯一。
+     */
+
     /**
      * Substrings of secrets that ship with the repository or with examples. This key is the root of
      * both authentication and tenant isolation — every controller derives userId and workspaceId
@@ -78,6 +88,7 @@ public class JwtUtil {
         Instant expiry = now.plus(accessTokenValidity, ChronoUnit.MILLIS);
         
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(userId.toString())
                 .claim("workspaceId", workspaceId.toString())
                 .claim(CLAIM_TYPE, TYPE_ACCESS)
@@ -86,15 +97,16 @@ public class JwtUtil {
                 .signWith(secretKey)
                 .compact();
     }
-    
+
     /**
      * 生成Refresh Token（仅包含userId）
      */
     public String generateRefreshToken(UUID userId) {
         Instant now = Instant.now();
         Instant expiry = now.plus(refreshTokenValidity, ChronoUnit.MILLIS);
-        
+
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
                 .subject(userId.toString())
                 .claim(CLAIM_TYPE, TYPE_REFRESH)
                 .issuedAt(Date.from(now))
