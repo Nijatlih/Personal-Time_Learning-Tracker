@@ -3,7 +3,7 @@
 ## 这是什么
 
 PTLT (Personal Time & Learning Tracker) —— 个人时间、学习与系统稳定度追踪。
-Spring Boot 3.5.16 / Java 21 后端（`src/`，107 文件，44 端点，14 张表，6 个 Flyway 迁移，
+Spring Boot 3.5.16 / Java 21 后端（`src/`，106 文件，43 端点，14 张表，6 个 Flyway 迁移，
 workspace 级多租户）+ React 19 + Vite 8 前端（`frontend/`，纯 JS，7 个页面）。
 
 ## 定位：自用工具，不做成产品
@@ -15,6 +15,7 @@ workspace 级多租户）+ React 19 + Vite 8 前端（`frontend/`，纯 JS，7 �
 
 - `adr/0003` —— invite 与 RBAC 已整套删除，`WorkspaceRole` 只剩 `OWNER`
 - `adr/0004` —— 离线同步（sync）已整块删除
+- `adr/0005` —— 单用户单 workspace，`POST /api/v1/workspaces` 已删除
 - 后端**只提供 API**，不 serve 任何前端资源（旧的 vanilla SPA 已删）
 
 ## 状态：两轮审计的缺陷已全部关闭
@@ -28,23 +29,22 @@ Jackson 序列化、共享可变状态、请求校验覆盖面等）。
 
 ## 现在开放的事项
 
-**完整清单见 [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md)**（含每条的修法、取舍和"为什么本轮没做"）。
-摘要：
+**完整清单见 [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md)**（含每条的修法与落地状态）。
 
-1. **P1 —— Analytics 页有两段编造的数据当真实统计展示**（`Analytics.jsx:138,146`）。
-   "85% consistency rate" 是硬编码文案，不来自任何接口。这是唯一一条真正的活缺陷，
-   而且后端端点已就绪、前端 service 方法已写好只是零调用点，成本很低。
-2. **P2 —— `POST /api/v1/workspaces` 能创建一个此后永远访问不到的 workspace**（需要产品决定）。
-3. **P3 —— 11 个 controller 各自重复解析 JWT**（目前不是活缺陷，是重复；34 个集成测试已能兜住重构）。
-4. **P4 —— 前端 5 个 lint 错误**，CI 的 lint 步骤仍是 `continue-on-error`。
-   两条都有了现成修法：`Analytics.jsx` 和 `DailyLog.jsx` 是通过该规则的范例。
-5. **P5 —— 零散项**：favicon 404、`green_streak`/`uptime_streak` 两列的定位、
-   routine 完成率的 `totalDays` 口径。
+P1、P2、P4、P5 已完成；**只剩 P3**：11 个 controller 各自重复解析 JWT
+（21 份几乎相同的私有方法）。目前**不是活缺陷** —— JWT 是 base64url 不含空格，
+所以全局 `replace` 撞不到；filter 也已强制 `Bearer ` 前缀。问题是重复：
+同一个 token 在 filter 里已验证过一次，controller 又解析两次。
+F19 那条缺陷就是这个模式的产物。正确做法是把 userId + workspaceId 一起放进
+`SecurityContext`，controller 从那里读。35 个集成测试已能兜住这个重构。
+
+另有一条小的：`getRoutineCompletionStats` 的 `totalDays` 用日历天数而非"有 routine
+定义的天数"，会把完成率往下拉（与 F3 同类，影响小，需先定语义）。
 
 ## 命令
 
 ```bash
-mvn -B clean verify                      # 34 个测试（11 单元 + 23 集成）
+mvn -B clean verify                      # 35 个测试（11 单元 + 24 集成）
 cd frontend && npm ci && npm run build
 ```
 
@@ -85,9 +85,14 @@ docker run -d --name ptlt-pg -e POSTGRES_PASSWORD=ptltdev \
 ## 约定
 
 - 提交信息：**不加 `Co-Authored-By: Claude`、不加 "Generated with Claude Code"** 等任何 AI 尾注。
-- 修源码来满足 linter，**不要放宽 `eslint.config.js`**（仓库有 hook 会拦）。
-  新增页面时注意别添第 6 个 lint 错误：取数用 `.then/.catch`，不要在 `useEffect` 里调一个
-  会 setState 的函数（`react-hooks/set-state-in-effect` 是静态规则，与 await 在第几句无关）。
+- **前端 lint 现在是 0 错误，且 CI 的 lint 步骤是阻塞的。** 修源码来满足 linter，
+  **不要放宽 `eslint.config.js`、不要加回 `continue-on-error`**（仓库有 hook 会拦）。
+  新增页面时：取数在 `useEffect` 里直接写 `.then/.catch`，setState 放进 promise 回调，
+  **不要**在 effect 体里调一个会 setState 的函数 —— `react-hooks/set-state-in-effect`
+  是静态规则，与 `await` 出现在第几句无关。需要手动刷新就用一个 reloadCount 计数器触发
+  effect（见 `Tasks.jsx`），不要另外暴露取数函数。5 个页面都是这个形态，照抄任意一个。
+  同一个模块不要既导出组件又导出 hook（`react-refresh/only-export-components`）——
+  参考 `hooks/useAuth.js` 与 `hooks/AuthProvider.jsx` 的拆法。
 - Lombok 版本走 `${lombok.version}`，1.18.36 及以下在 JDK 24+ 上会静默编译失败。
   **不要重新加回 `maven-compiler-plugin` 的 `<fork>true</fork>`** —— 它会吞掉全部编译诊断，
   只剩一句 "Compilation failure"。

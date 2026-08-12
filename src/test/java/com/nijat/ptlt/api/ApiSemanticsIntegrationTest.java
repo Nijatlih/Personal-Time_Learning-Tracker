@@ -150,7 +150,7 @@ class ApiSemanticsIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("invite 与 sync 端点已删除（ADR 0003 / 0004）")
+    @DisplayName("invite、sync、workspace create 端点均已删除（ADR 0003 / 0004 / 0005）")
     void removedEndpointsAreGone() throws Exception {
         Account acc = newAccount();
 
@@ -163,5 +163,28 @@ class ApiSemanticsIntegrationTest extends AbstractIntegrationTest {
                 .isEqualTo(404);
         assertThat(postJson("/api/v1/sync/push", acc.accessToken(), "{}").getStatus())
                 .isEqualTo(404);
+
+        // ADR 0005：create 端点删掉了，因为它能造出一个此后永远访问不到的 workspace。
+        // POST 到集合路径现在是"方法不支持"（该路径上只剩 GET）。
+        assertThat(postJson("/api/v1/workspaces", acc.accessToken(), """
+                {"name":"second workspace"}
+                """).getStatus()).isEqualTo(405);
+    }
+
+    @Test
+    @DisplayName("workspace 列表只返回 token 指向的那一个（ADR 0005）")
+    void workspaceListReturnsOnlyTheReachableOne() throws Exception {
+        Account acc = newAccount();
+
+        JsonNode list = dataOf(getJson("/api/v1/workspaces", acc.accessToken()));
+
+        // 此前返回用户名下的全部 workspace，而 token 里的 workspaceId 固定取"最早创建的
+        // 那个"、没有任何端点能切换 —— 于是列表里会出现点不进去的条目。
+        assertThat(list).hasSize(1);
+        assertThat(list.get(0).get("id").asText()).isEqualTo(acc.workspaceId());
+
+        // 详情端点对这一个仍然可用
+        JsonNode detail = dataOf(getJson("/api/v1/workspaces/" + acc.workspaceId(), acc.accessToken()));
+        assertThat(detail.get("id").asText()).isEqualTo(acc.workspaceId());
     }
 }

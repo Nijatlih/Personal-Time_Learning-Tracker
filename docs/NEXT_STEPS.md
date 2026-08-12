@@ -6,9 +6,12 @@
 
 每一条都写了「为什么现在没做」—— 有些是取舍未定，有些是范围问题，不要把它们当成漏掉的活。
 
+> **2026-08-12 同日更新**：P1、P2、P4、P5 已完成，P3 未做。P5 里关于 streak 两列的那条
+> **是我写错了**，已在原处标注撤销并说明原因。下面各节保留原文并在标题上标了状态。
+
 ---
 
-## P1 — Analytics 页有两段编造的数据当真实统计展示
+## ~~P1~~ ✅ 已修（`a56285d`）— Analytics 页有两段编造的数据当真实统计展示
 
 **位置**：`frontend/src/pages/Analytics.jsx:138` 与 `:146`
 
@@ -40,7 +43,7 @@ Your morning routines have a 85% consistency rate. Keep it up!
 
 ---
 
-## P2 — `POST /api/v1/workspaces` 能创建一个此后永远访问不到的 workspace
+## ~~P2~~ ✅ 已修 — `POST /api/v1/workspaces` 能创建一个此后永远访问不到的 workspace
 
 **位置**：`workspace/controller/WorkspaceController.java`（create 端点）、
 `auth/service/AuthService.java:106,150`
@@ -66,11 +69,14 @@ token 里的 `workspaceId` 只来自
 **倾向 A**，理由与 `adr/0003`、`adr/0004` 一致：不做的功能就整块删掉，不要留半个。
 但这需要作者确认，因为它删掉的是一个"看起来该有"的端点。
 
-**为什么本轮没做**：需要产品决定，不是缺陷修复。
+**落地结果**：作者选了方案 A。已删掉 create 端点、`WorkspaceService.create`、
+`WorkspaceCreateRequest`，并把 `list()` 收敛为只返回 token 指向的那一个
+（返回类型仍是数组，长度恒为 1，不改 API 形状）。决定记在 `adr/0005-single-workspace-per-user.md`，
+含"将来若真要多 workspace，切换能力必须先于创建能力存在"这一条。端点数 44 → 43。
 
 ---
 
-## P3 — 10 个 controller 各自重复解析 JWT
+## P3 ⬜ **仍未做** — 11 个 controller 各自重复解析 JWT
 
 **位置**：全部 11 个 controller，每个 2 个私有方法（`WorkspaceController` 只有 1 个）
 
@@ -102,7 +108,7 @@ controller 改成从 `SecurityContext` 读，或者用一个 `@AuthenticationPri
 
 ---
 
-## P4 — 前端 5 个 lint 错误，CI 的 lint 步骤仍是 `continue-on-error`
+## ~~P4~~ ✅ 已修（`0599cbc`）— 前端 5 个 lint 错误，CI 的 lint 步骤仍是 `continue-on-error`
 
 原因写在 `.github/workflows/ci.yml` 的注释里。现在**两条都有了现成的修法**：
 
@@ -123,18 +129,18 @@ controller 改成从 `SecurityContext` 读，或者用一个 `@AuthenticationPri
 
 ---
 
-## P5 — 零散项
+## P5 — 零散项（favicon 已修；streak 那条是误判）
 
-- **`frontend/index.html:5` 引用 `/favicon.svg`，但 `frontend/public/` 目录不存在** ——
-  每次加载都 404。要么放一个图标进去，要么删掉这一行。
-- **`daily_records.green_streak` / `uptime_streak` 两列是否还该存在。**
-  所有读路径（`getByDate`、`getByDateRange`、`getDashboard`）都会**实时重算** streak，
-  写路径也会算一遍存进去。于是这两列的值随时可能与返回值不一致，而没有任何东西读它们。
-  它们要么该变成纯派生（删列），要么该成为唯一真相（读路径不再重算）。
-  现在是两者之间最糟的状态。
-  注意：读路径是在 `@Transactional(readOnly = true)` 里改实体的 ——
-  因为 readOnly 会把 FlushMode 设成 MANUAL，所以那些改动不会被写回库。
-  这是它今天没出问题的原因，但它依赖一个不显眼的机制。
+- ~~**`frontend/index.html:5` 引用 `/favicon.svg`，但 `frontend/public/` 目录不存在**~~ ——
+  ✅ 已修（`0599cbc`）：补了一个 SVG 图标，dev server 上从 404 变成 200。
+- ~~**`daily_records.green_streak` / `uptime_streak` 两列是否还该存在。**~~
+  **这一条我写错了，已撤销。** 去动手时核实了 schema 和实体：`daily_records` 表里
+  **根本没有这两列**（`grep -rn streak src/main/resources/db/migration/` 零命中，
+  `\d daily_records` 也只有 14 列），而 `DailyRecord` 的两个字段本来就标了 `@Transient`
+  （`entity/DailyRecord.java:63,66`，注释写的是"计算字段，不持久化"）。
+  也就是说 streak **已经是纯派生值**，正是当时建议的那个终态 —— 不存在"写路径又存一份"
+  这回事，也不存在两边不一致的可能。原文关于 readOnly / FlushMode 的那段推理是在一个
+  错误前提上展开的。无需任何改动。
 - **`getRoutineCompletionStats` 的 `totalDays` 用的是日历天数**，而不是"有 routine 定义的天数"。
   routine 定义是在某天创建的，创建之前那些天算作"未完成"，会把完成率往下拉。
   与 F3 同一类问题（分母口径），但影响小得多，且需要先决定语义。

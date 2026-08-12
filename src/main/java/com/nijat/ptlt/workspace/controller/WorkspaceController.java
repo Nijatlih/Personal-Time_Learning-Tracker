@@ -2,7 +2,6 @@ package com.nijat.ptlt.workspace.controller;
 
 import com.nijat.ptlt.auth.util.JwtUtil;
 import com.nijat.ptlt.common.response.ApiResponse;
-import com.nijat.ptlt.workspace.dto.WorkspaceCreateRequest;
 import com.nijat.ptlt.workspace.dto.WorkspaceResponse;
 import com.nijat.ptlt.workspace.dto.WorkspaceUpdateRequest;
 import com.nijat.ptlt.workspace.service.WorkspaceService;
@@ -32,21 +31,21 @@ public class WorkspaceController {
         String token = authHeader.replace("Bearer ", "");
         return jwtUtil.getUserIdFromToken(token);
     }
-    
-    @PostMapping
-    public ResponseEntity<ApiResponse<WorkspaceResponse>> create(
-            @Valid @RequestBody WorkspaceCreateRequest request,
-            @RequestHeader("Authorization") String authHeader) {
-        UUID userId = getUserIdFromHeader(authHeader);
-        WorkspaceResponse response = workspaceService.create(request, userId);
-        return ResponseEntity.ok(ApiResponse.success(response));
+
+    private UUID getWorkspaceIdFromHeader(@RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.replace("Bearer ", "");
+        return jwtUtil.getWorkspaceIdFromToken(token);
     }
-    
+
+    // 没有 create 端点。workspace 只在注册时创建一个，见 adr/0005。
+
+    /** 返回 token 指向的那一个 workspace（数组长度恒为 1）。 */
     @GetMapping
     public ResponseEntity<ApiResponse<List<WorkspaceResponse>>> list(
             @RequestHeader("Authorization") String authHeader) {
         UUID userId = getUserIdFromHeader(authHeader);
-        List<WorkspaceResponse> workspaces = workspaceService.list(userId);
+        UUID workspaceId = getWorkspaceIdFromHeader(authHeader);
+        List<WorkspaceResponse> workspaces = workspaceService.list(workspaceId, userId);
         return ResponseEntity.ok(ApiResponse.success(workspaces));
     }
     

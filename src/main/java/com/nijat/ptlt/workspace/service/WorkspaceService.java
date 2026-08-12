@@ -3,7 +3,6 @@ package com.nijat.ptlt.workspace.service;
 import com.nijat.ptlt.common.exception.ConflictException;
 import com.nijat.ptlt.common.exception.ForbiddenException;
 import com.nijat.ptlt.common.exception.NotFoundException;
-import com.nijat.ptlt.workspace.dto.WorkspaceCreateRequest;
 import com.nijat.ptlt.workspace.dto.WorkspaceResponse;
 import com.nijat.ptlt.workspace.dto.WorkspaceUpdateRequest;
 import com.nijat.ptlt.workspace.entity.Workspace;
@@ -18,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Workspace服务
@@ -32,45 +30,27 @@ public class WorkspaceService {
     private final WorkspaceMemberRepository workspaceMemberRepository;
 
     /**
-     * 创建workspace
-     */
-    @Transactional
-    public WorkspaceResponse create(WorkspaceCreateRequest request, UUID ownerId) {
-        Workspace workspace = Workspace.builder()
-                .name(request.getName())
-                .ownerId(ownerId)
-                .build();
-        workspace = workspaceRepository.save(workspace);
-        
-        // 创建成员关系（OWNER）
-        WorkspaceMember member = WorkspaceMember.builder()
-                .workspaceId(workspace.getId())
-                .userId(ownerId)
-                .role(WorkspaceRole.OWNER)  // 唯一剩下的角色，见 adr/0003
-                .build();
-        workspaceMemberRepository.save(member);
-        
-        log.info("Workspace created: {} by user: {}", workspace.getId(), ownerId);
-        return toResponse(workspace);
-    }
-    
-    /**
-     * 获取workspace列表（当前用户）
+     * 获取当前 workspace。
+     *
+     * 只返回 token 指向的那一个，而不是用户名下的全部。
+     *
+     * 此前返回全部成员关系对应的 workspace —— 但 token 里的 workspaceId 固定取
+     * "最早创建的那个"，且没有任何端点能切换（见 adr/0005）。于是这个列表会把
+     * 用户点不进去的 workspace 也列出来：界面能看到它、能拿到它的 id，
+     * 但所有数据端点都只认 token 里那一个。
+     *
+     * 返回类型保持 List 是为了不改动 API 形状（客户端拿到的仍是数组，只是长度恒为 1）。
      */
     @Transactional(readOnly = true)
-    public List<WorkspaceResponse> list(UUID userId) {
-        // 查找用户作为成员的所有workspace
-        List<WorkspaceMember> members = workspaceMemberRepository.findByUserIdAndDeletedAtIsNull(userId);
-        List<UUID> workspaceIds = members.stream()
-                .map(WorkspaceMember::getWorkspaceId)
-                .collect(Collectors.toList());
-        
-        return workspaceRepository.findAllById(workspaceIds).stream()
-                .filter(w -> w.getDeletedAt() == null)
+    public List<WorkspaceResponse> list(UUID workspaceId, UUID userId) {
+        validateMemberAccess(workspaceId, userId);
+
+        return workspaceRepository.findByIdAndDeletedAtIsNull(workspaceId)
                 .map(this::toResponse)
-                .collect(Collectors.toList());
+                .map(List::of)
+                .orElseGet(List::of);
     }
-    
+
     /**
      * 获取workspace详情
      * 必须校验用户是workspace成员
