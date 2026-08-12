@@ -3,7 +3,7 @@
 ## 这是什么
 
 PTLT (Personal Time & Learning Tracker) —— 个人时间、学习与系统稳定度追踪。
-Spring Boot 3.5.16 / Java 21 后端（`src/`，106 文件，43 端点，14 张表，6 个 Flyway 迁移，
+Spring Boot 3.5.16 / Java 21 后端（`src/`，107 文件，43 端点，14 张表，6 个 Flyway 迁移，
 workspace 级多租户）+ React 19 + Vite 8 前端（`frontend/`，纯 JS，7 个页面）。
 
 ## 定位：自用工具，不做成产品
@@ -31,15 +31,15 @@ Jackson 序列化、共享可变状态、请求校验覆盖面等）。
 
 **完整清单见 [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md)**（含每条的修法与落地状态）。
 
-P1、P2、P4、P5 已完成；**只剩 P3**：11 个 controller 各自重复解析 JWT
-（21 份几乎相同的私有方法）。目前**不是活缺陷** —— JWT 是 base64url 不含空格，
-所以全局 `replace` 撞不到；filter 也已强制 `Bearer ` 前缀。问题是重复：
-同一个 token 在 filter 里已验证过一次，controller 又解析两次。
-F19 那条缺陷就是这个模式的产物。正确做法是把 userId + workspaceId 一起放进
-`SecurityContext`，controller 从那里读。35 个集成测试已能兜住这个重构。
+**P1–P5 已全部完成。** 现在只剩一条需要先定语义的小事：
+`AnalyticsService.getRoutineCompletionStats` 的 `totalDays` 用的是日历天数，
+而不是"有 routine 定义的天数" —— routine 定义在某天创建，创建之前那些天算作"未完成"，
+会把完成率往下拉。与 F3 同一类问题（分母口径），但影响小得多。
 
-另有一条小的：`getRoutineCompletionStats` 的 `totalDays` 用日历天数而非"有 routine
-定义的天数"，会把完成率往下拉（与 F3 同类，影响小，需先定语义）。
+认证的形状已经收敛：token 只在 `JwtAuthenticationFilter` 里解析一次，
+principal 是 `AuthenticatedUser`（userId + workspaceId），controller 用
+`@AuthenticationPrincipal` 取。**新增端点照这个写，不要再自己读 Authorization header**
+（`AuthController` 是唯一的例外，理由写在它的注释里）。
 
 ## 命令
 

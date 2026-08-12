@@ -6,8 +6,10 @@
 
 每一条都写了「为什么现在没做」—— 有些是取舍未定，有些是范围问题，不要把它们当成漏掉的活。
 
-> **2026-08-12 同日更新**：P1、P2、P4、P5 已完成，P3 未做。P5 里关于 streak 两列的那条
+> **2026-08-12 同日更新**：**P1–P5 全部完成。** P5 里关于 streak 两列的那条
 > **是我写错了**，已在原处标注撤销并说明原因。下面各节保留原文并在标题上标了状态。
+>
+> 唯一剩下的是 P5 里的 `totalDays` 口径那条 —— 它需要先决定语义，不是能直接动手的活。
 
 ---
 
@@ -76,7 +78,7 @@ token 里的 `workspaceId` 只来自
 
 ---
 
-## P3 ⬜ **仍未做** — 11 个 controller 各自重复解析 JWT
+## ~~P3~~ ✅ 已修（`bcc8304`）— 11 个 controller 各自重复解析 JWT
 
 **位置**：全部 11 个 controller，每个 2 个私有方法（`WorkspaceController` 只有 1 个）
 
@@ -106,6 +108,17 @@ controller 改成从 `SecurityContext` 读，或者用一个 `@AuthenticationPri
 **为什么本轮没做**：11 个文件、21 个方法的机械改动，没有对应的行为缺陷。
 不过现在有 34 个集成测试兜着，回归风险比本轮开始时低得多 —— 这件事现在做比之前安全。
 
+**落地结果**：新增 `auth/model/AuthenticatedUser`（record：userId + workspaceId），
+filter 验证 token 后把它作为 principal 放进 SecurityContext —— 这成为整个应用**唯一**
+解析 token 的地方。10 个 controller 的 38 个端点方法改用
+`@AuthenticationPrincipal AuthenticatedUser principal`，20 个 helper 全删，不再注入 JwtUtil；
+方法体内保留 `UUID userId = principal.userId();` 局部变量，所以业务代码一行未动。
+
+`AuthController` 有意保留读原始 header 的写法：它在 permitAll 路径上、SecurityContext
+可能合法为空，且需要区分"没有 Bearer 前缀"和"token 无效"。
+
+这次重构正是测试基线存在的理由：35 个集成测试全绿且一次未改测试代码。
+
 ---
 
 ## ~~P4~~ ✅ 已修（`0599cbc`）— 前端 5 个 lint 错误，CI 的 lint 步骤仍是 `continue-on-error`
@@ -129,7 +142,7 @@ controller 改成从 `SecurityContext` 读，或者用一个 `@AuthenticationPri
 
 ---
 
-## P5 — 零散项（favicon 已修；streak 那条是误判）
+## P5 — 零散项（favicon ✅ 已修；streak 那条是误判；只剩 totalDays 口径）
 
 - ~~**`frontend/index.html:5` 引用 `/favicon.svg`，但 `frontend/public/` 目录不存在**~~ ——
   ✅ 已修（`0599cbc`）：补了一个 SVG 图标，dev server 上从 404 变成 200。
