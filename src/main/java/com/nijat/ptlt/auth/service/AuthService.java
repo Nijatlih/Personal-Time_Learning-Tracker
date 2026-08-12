@@ -9,6 +9,7 @@ import com.nijat.ptlt.auth.entity.User;
 import com.nijat.ptlt.auth.repository.RefreshTokenRepository;
 import com.nijat.ptlt.auth.repository.UserRepository;
 import com.nijat.ptlt.auth.util.JwtUtil;
+import com.nijat.ptlt.auth.util.TokenHasher;
 import com.nijat.ptlt.common.exception.ForbiddenException;
 import com.nijat.ptlt.common.exception.UnauthorizedException;
 import com.nijat.ptlt.common.exception.ValidationException;
@@ -189,28 +190,53 @@ public class AuthService {
     
     /**
      * 刷新token
+     *
+     * noRollbackFor 是本方法的正确性前提，不是优化：下面的重用检测在抛
+     * UnauthorizedException **之前**要先撤销该用户的全部 token。默认规则下
+     * RuntimeException 会让整个事务回滚，撤销也就一起没了 —— 检测到失陷却什么都没做，
+     * 比不检测更糟。其余几处 throw 在抛之前没有任何写操作，所以放宽回滚规则对它们无影响。
      */
-    @Transactional
+    @Transactional(noRollbackFor = UnauthorizedException.class)
     public AuthResponse refresh(RefreshRequest request) {
         // 验证refresh token
         if (!jwtUtil.validateRefreshToken(request.getRefreshToken())) {
             throw new UnauthorizedException("Invalid refresh token");
         }
-        
+
         UUID userId = jwtUtil.getUserIdFromToken(request.getRefreshToken());
-        
-        // 检查数据库中的token是否有效
-        RefreshToken refreshToken = refreshTokenRepository.findByToken(request.getRefreshToken())
+
+        // 按摘要查，明文 token 不进数据库
+        RefreshToken refreshToken = refreshTokenRepository
+                .findByTokenHash(TokenHasher.sha256Hex(request.getRefreshToken()))
                 .orElseThrow(() -> new UnauthorizedException("Refresh token not found"));
-        
+
+        // 重用检测：一个已经被轮换掉的 token 又被拿来用，说明它在轮换之后还留在
+        // 别的地方 —— 按 OAuth 2.0 安全最佳实践（RFC 9700 §4.14.2），这必须当作
+        // 该 token 已泄露来处理，而不是简单拒绝这一次请求。
+        //
+        // 只拒绝这一次是不够的：攻击者偷到 token 后先用掉，受害者下次刷新时被拒、
+        // 重新登录，于是双方各持一条有效的链并存 —— 受害者只会觉得"莫名被登出了一次"，
+        // 攻击者那条链毫发无损。所以这里连坐撤销该用户的全部 token，强制双方都重新登录，
+        // 而只有受害者知道密码。
+        //
+        // 已知代价：多个标签页几乎同时刷新时可能误判成失陷，代价是多登录一次。
+        // localStorage 是同源共享的，前端也用同一个 promise 收敛并发刷新，
+        // 所以这个窗口很窄；而漏掉一次真实的 token 盗用代价高得多。
+        if (refreshToken.getRevokedAt() != null) {
+            refreshTokenRepository.revokeAllByUserId(userId, OffsetDateTime.now());
+            log.warn("Refresh token reuse detected for user {}; revoked all tokens for this user",
+                    userId);
+            throw new UnauthorizedException("Refresh token expired or revoked");
+        }
+
         if (!refreshToken.isValid()) {
             throw new UnauthorizedException("Refresh token expired or revoked");
         }
-        
+
         // 撤销旧token
         refreshToken.setRevokedAt(OffsetDateTime.now());
         refreshTokenRepository.save(refreshToken);
-        
+
         // 获取用户的默认workspace
         Workspace workspace = workspaceRepository.findFirstByOwnerIdAndDeletedAtIsNullOrderByCreatedAtAsc(userId)
                 .orElseThrow(() -> new UnauthorizedException("No workspace found for user"));
@@ -252,7 +278,8 @@ public class AuthService {
         OffsetDateTime expiresAt = OffsetDateTime.now().plus(refreshTokenValidity, ChronoUnit.MILLIS);
         RefreshToken refreshToken = RefreshToken.builder()
                 .userId(userId)
-                .token(token)
+                // 只存摘要。明文 token 只在响应体里给客户端一次。
+                .tokenHash(TokenHasher.sha256Hex(token))
                 .expiresAt(expiresAt)
                 .build();
         refreshTokenRepository.save(refreshToken);

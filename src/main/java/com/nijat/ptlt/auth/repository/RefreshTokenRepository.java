@@ -17,10 +17,10 @@ import java.util.UUID;
 @Repository
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
     /**
-     * 根据token查找
+     * 根据 token 的 SHA-256 摘要查找。调用方负责先做摘要 —— 明文 token 不进数据库。
      */
-    Optional<RefreshToken> findByToken(String token);
-    
+    Optional<RefreshToken> findByTokenHash(String tokenHash);
+
     /**
      * 撤销用户的所有token
      */

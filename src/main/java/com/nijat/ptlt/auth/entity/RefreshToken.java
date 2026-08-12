@@ -27,9 +27,13 @@ public class RefreshToken {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
     
-    @Column(nullable = false, unique = true, length = 500)
-    private String token;
-    
+    /**
+     * refresh token 的 SHA-256 十六进制摘要，**不是**明文 token。
+     * 明文只在响应体里给客户端一次，服务端此后只保留这个摘要。见 auth/util/TokenHasher。
+     */
+    @Column(name = "token_hash", nullable = false, unique = true, length = 64)
+    private String tokenHash;
+
     @Column(name = "expires_at", nullable = false)
     private OffsetDateTime expiresAt;
     
