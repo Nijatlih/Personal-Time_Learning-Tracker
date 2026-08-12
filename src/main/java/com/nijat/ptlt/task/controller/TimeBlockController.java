@@ -1,6 +1,6 @@
 package com.nijat.ptlt.task.controller;
 
-import com.nijat.ptlt.auth.util.JwtUtil;
+import com.nijat.ptlt.auth.model.AuthenticatedUser;
 import com.nijat.ptlt.common.response.ApiResponse;
 import com.nijat.ptlt.task.dto.TimeBlockCreateRequest;
 import com.nijat.ptlt.task.dto.TimeBlockResponse;
@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -24,27 +25,13 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class TimeBlockController {
     private final TimeBlockService timeBlockService;
-    private final JwtUtil jwtUtil;
-    
-    /**
-     * 从请求头提取用户ID和workspace ID
-     */
-    private UUID getUserIdFromHeader(@RequestHeader("Authorization") String authHeader) {
-        String token = authHeader.replace("Bearer ", "");
-        return jwtUtil.getUserIdFromToken(token);
-    }
-    
-    private UUID getWorkspaceIdFromHeader(@RequestHeader("Authorization") String authHeader) {
-        String token = authHeader.replace("Bearer ", "");
-        return jwtUtil.getWorkspaceIdFromToken(token);
-    }
     
     @PostMapping
     public ResponseEntity<ApiResponse<TimeBlockResponse>> create(
             @Valid @RequestBody TimeBlockCreateRequest request,
-            @RequestHeader("Authorization") String authHeader) {
-        UUID userId = getUserIdFromHeader(authHeader);
-        UUID workspaceId = getWorkspaceIdFromHeader(authHeader);
+            @AuthenticationPrincipal AuthenticatedUser principal) {
+        UUID userId = principal.userId();
+        UUID workspaceId = principal.workspaceId();
         TimeBlockResponse response = timeBlockService.create(request, workspaceId, userId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -52,9 +39,9 @@ public class TimeBlockController {
     @GetMapping("/by-date")
     public ResponseEntity<ApiResponse<List<TimeBlockResponse>>> getByDate(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestHeader("Authorization") String authHeader) {
-        UUID userId = getUserIdFromHeader(authHeader);
-        UUID workspaceId = getWorkspaceIdFromHeader(authHeader);
+            @AuthenticationPrincipal AuthenticatedUser principal) {
+        UUID userId = principal.userId();
+        UUID workspaceId = principal.workspaceId();
         List<TimeBlockResponse> responses = timeBlockService.getByDate(date, workspaceId, userId);
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
@@ -63,9 +50,9 @@ public class TimeBlockController {
     public ResponseEntity<ApiResponse<List<TimeBlockResponse>>> getByDateRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
-            @RequestHeader("Authorization") String authHeader) {
-        UUID userId = getUserIdFromHeader(authHeader);
-        UUID workspaceId = getWorkspaceIdFromHeader(authHeader);
+            @AuthenticationPrincipal AuthenticatedUser principal) {
+        UUID userId = principal.userId();
+        UUID workspaceId = principal.workspaceId();
         List<TimeBlockResponse> responses = timeBlockService.getByDateRange(
                 startDate, endDate, workspaceId, userId);
         return ResponseEntity.ok(ApiResponse.success(responses));
@@ -74,9 +61,9 @@ public class TimeBlockController {
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<TimeBlockResponse>> getById(
             @PathVariable UUID id,
-            @RequestHeader("Authorization") String authHeader) {
-        UUID userId = getUserIdFromHeader(authHeader);
-        UUID workspaceId = getWorkspaceIdFromHeader(authHeader);
+            @AuthenticationPrincipal AuthenticatedUser principal) {
+        UUID userId = principal.userId();
+        UUID workspaceId = principal.workspaceId();
         TimeBlockResponse response = timeBlockService.getById(id, workspaceId, userId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -85,9 +72,9 @@ public class TimeBlockController {
     public ResponseEntity<ApiResponse<TimeBlockResponse>> update(
             @PathVariable UUID id,
             @Valid @RequestBody TimeBlockUpdateRequest request,
-            @RequestHeader("Authorization") String authHeader) {
-        UUID userId = getUserIdFromHeader(authHeader);
-        UUID workspaceId = getWorkspaceIdFromHeader(authHeader);
+            @AuthenticationPrincipal AuthenticatedUser principal) {
+        UUID userId = principal.userId();
+        UUID workspaceId = principal.workspaceId();
         TimeBlockResponse response = timeBlockService.update(id, request, workspaceId, userId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -95,9 +82,9 @@ public class TimeBlockController {
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> delete(
             @PathVariable UUID id,
-            @RequestHeader("Authorization") String authHeader) {
-        UUID userId = getUserIdFromHeader(authHeader);
-        UUID workspaceId = getWorkspaceIdFromHeader(authHeader);
+            @AuthenticationPrincipal AuthenticatedUser principal) {
+        UUID userId = principal.userId();
+        UUID workspaceId = principal.workspaceId();
         timeBlockService.delete(id, workspaceId, userId);
         return ResponseEntity.ok(ApiResponse.success(null));
     }

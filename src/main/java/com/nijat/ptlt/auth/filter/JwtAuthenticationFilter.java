@@ -1,5 +1,6 @@
 package com.nijat.ptlt.auth.filter;
 
+import com.nijat.ptlt.auth.model.AuthenticatedUser;
 import com.nijat.ptlt.auth.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -45,16 +46,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // 2. 验证 Token 有效性
             if (jwtUtil.validateAccessToken(jwt)) {
                 userId = jwtUtil.getUserIdFromToken(jwt);
-                
-                // 3. 构建 Spring Security 的认证对象
+
+                // 3. 构建 Spring Security 的认证对象。
+                //
+                // principal 是 AuthenticatedUser 而不是裸 userId：workspaceId 同样来自
+                // token，一并放进来之后 controller 就不需要再自己解析一次 header。
+                // 这是这个应用里**唯一**解析 token 的地方，类型校验也只有上面那一处。
                 if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    AuthenticatedUser principal =
+                            new AuthenticatedUser(userId, jwtUtil.getWorkspaceIdFromToken(jwt));
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userId, 
-                            null, 
+                            principal,
+                            null,
                             new ArrayList<>() // 权限列表，目前留空
                     );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    
+
                     // 4. 将认证信息存入上下文
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }

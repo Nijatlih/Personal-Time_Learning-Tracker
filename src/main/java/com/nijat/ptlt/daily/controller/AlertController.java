@@ -1,12 +1,13 @@
 package com.nijat.ptlt.daily.controller;
 
-import com.nijat.ptlt.auth.util.JwtUtil;
+import com.nijat.ptlt.auth.model.AuthenticatedUser;
 import com.nijat.ptlt.common.response.ApiResponse;
 import com.nijat.ptlt.daily.dto.AlertResponse;
 import com.nijat.ptlt.daily.entity.Alert;
 import com.nijat.ptlt.daily.service.AlertService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,27 +22,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AlertController {
     private final AlertService alertService;
-    private final JwtUtil jwtUtil;
-    
-    /**
-     * 从请求头提取用户ID和workspace ID
-     */
-    private UUID getUserIdFromHeader(@RequestHeader("Authorization") String authHeader) {
-        String token = authHeader.replace("Bearer ", "");
-        return jwtUtil.getUserIdFromToken(token);
-    }
-    
-    private UUID getWorkspaceIdFromHeader(@RequestHeader("Authorization") String authHeader) {
-        String token = authHeader.replace("Bearer ", "");
-        return jwtUtil.getWorkspaceIdFromToken(token);
-    }
     
     @GetMapping
     public ResponseEntity<ApiResponse<List<AlertResponse>>> getAlerts(
             @RequestParam(required = false) Boolean unreadOnly,
-            @RequestHeader("Authorization") String authHeader) {
-        UUID userId = getUserIdFromHeader(authHeader);
-        UUID workspaceId = getWorkspaceIdFromHeader(authHeader);
+            @AuthenticationPrincipal AuthenticatedUser principal) {
+        UUID userId = principal.userId();
+        UUID workspaceId = principal.workspaceId();
         List<Alert> alerts = alertService.getAlerts(workspaceId, userId, unreadOnly);
         List<AlertResponse> responses = alerts.stream()
                 .map(this::toResponse)
@@ -52,9 +39,9 @@ public class AlertController {
     @PostMapping("/{id}/read")
     public ResponseEntity<ApiResponse<Void>> markAsRead(
             @PathVariable UUID id,
-            @RequestHeader("Authorization") String authHeader) {
-        UUID userId = getUserIdFromHeader(authHeader);
-        UUID workspaceId = getWorkspaceIdFromHeader(authHeader);
+            @AuthenticationPrincipal AuthenticatedUser principal) {
+        UUID userId = principal.userId();
+        UUID workspaceId = principal.workspaceId();
         alertService.markAsRead(id, workspaceId, userId);
         return ResponseEntity.ok(ApiResponse.success(null));
     }
