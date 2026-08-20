@@ -29,7 +29,9 @@ Jackson 序列化、共享可变状态、请求校验覆盖面等）。
 
 ## 现在开放的事项
 
-**完整清单见 [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md)**（含每条的修法与落地状态）。
+**已完成清单见 [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md)**；长期方向见
+[`docs/VISION_ROADMAP.md`](docs/VISION_ROADMAP.md)。远景只记录方向，不代表已经承诺实施；
+必须先根据真实使用反馈再启动阶段。
 
 **P1–P5 已全部完成，目前没有开放缺陷。** Routine 完成率已确定为只统计定义创建后的
 有效天数，Morning 与 Evening 使用各自独立的分母；定义创建前的日期不算未完成。

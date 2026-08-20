@@ -303,7 +303,8 @@ docker logs ptlt-pg
 ## 项目文档
 
 - [`CLAUDE.md`](CLAUDE.md)：项目约定与当前状态
-- [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md)：剩余待决事项
+- [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md)：已完成事项与历史决策
+- [`docs/VISION_ROADMAP.md`](docs/VISION_ROADMAP.md)：从日程与学习计划吸收经验的长期路线图
 - [`docs/AUDIT_2026_08_10.md`](docs/AUDIT_2026_08_10.md)：第二轮审计与实测证据
 - [`adr/0001-personal-tool-not-a-product.md`](adr/0001-personal-tool-not-a-product.md)：为什么定位为自用工具
 - [`adr/0003-drop-invite-and-role-based-access.md`](adr/0003-drop-invite-and-role-based-access.md)：删除 invite/RBAC
