@@ -13,7 +13,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '25'
           cache: maven
       # `verify` 现在包含 Testcontainers 集成测试，会拉起一个真实的
       # postgres:16-alpine 容器。ubuntu-latest 自带 Docker daemon，无需额外配置。

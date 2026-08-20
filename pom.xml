@@ -21,12 +21,12 @@
     <description>Personal Time &amp; Learning Tracker - Production-grade tracking system</description>
 
     <properties>
-        <java.version>21</java.version>
+        <java.version>25</java.version>
         <!-- 1.18.36 无法在 JDK 24+ 上运行注解处理器：javac 会 fork 后静默失败。
              1.18.40 起支持 JDK 25。CI 用 JDK 21，但本地常见更新的 JDK。 -->
         <lombok.version>1.18.42</lombok.version>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.source>25</maven.compiler.source>
+        <maven.compiler.target>25</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -128,8 +128,8 @@
                          JDK 24+ 上跑注解处理器的变通。1.18.42 原生支持，不再需要；而 fork=true
                          正是编译诊断被吞掉、构建日志只剩一句 "Compilation failure" 的原因
                          （见 docs/AUDIT_2026_08_09.md 第 2 节第 3 条）。 -->
-                    <source>21</source>
-                    <target>21</target>
+                    <source>25</source>
+                    <target>25</target>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
