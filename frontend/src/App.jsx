@@ -1,7 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './hooks/AuthProvider';
+import { ThemeProvider } from './hooks/ThemeProvider';
 import { useAuth } from './hooks/useAuth';
 import Sidebar from './components/Sidebar';
+import ThemeToggle from './components/ThemeToggle';
 import Dashboard from './pages/Dashboard';
 import DailyLog from './pages/DailyLog';
 import Login from './pages/Login';
@@ -11,64 +13,59 @@ import Routines from './pages/Routines';
 import Analytics from './pages/Analytics';
 import './styles/globals.css';
 
-// 认证守卫组件。
-//
-// 不再有 loading 分支：AuthProvider 现在用惰性初始值同步地从 localStorage 读回状态，
-// 没有需要等待的阶段，那个分支恒不执行。
 const RequireAuth = ({ children }) => {
   const { token } = useAuth();
   if (!token) return <Navigate to="/login" replace />;
   return children;
 };
 
-// 系统布局组件
-const SystemLayout = ({ children }) => {
-  return (
-    <div className="app-layout" style={{ display: 'flex', minHeight: '100vh' }}>
-      <Sidebar />
-      <main className="main-content" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <header className="system-header" style={{ 
-          padding: '1.5rem 3rem', 
-          borderBottom: '1px solid var(--border-color)',
-          backgroundColor: 'rgba(2, 6, 23, 0.5)',
-          backdropFilter: 'blur(10px)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 10
-        }}>
-          {/* 这里可以放置动态标题或搜索框 */}
-          <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-            System Status: <span style={{ color: 'var(--success)', fontWeight: '600' }}>ONLINE</span>
+const PublicLayout = ({ children }) => (
+  <div className="public-page">
+    <div className="public-theme-toggle"><ThemeToggle /></div>
+    {children}
+  </div>
+);
+
+const SystemLayout = ({ children }) => (
+  <div className="app-layout">
+    <Sidebar />
+    <main className="main-content" id="main-content">
+      <header className="system-header">
+        <div className="system-header-inner">
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
+              Personal workspace
+            </div>
+            <div style={{ fontSize: '0.875rem', color: 'var(--text-primary)', marginTop: '0.15rem' }}>
+              System status: <span style={{ color: 'var(--success)', fontWeight: 700 }}>Online</span>
+            </div>
           </div>
-        </header>
-        <div style={{ flex: 1, padding: '2rem 3rem' }}>
-          {children}
+          <ThemeToggle />
         </div>
-      </main>
-    </div>
-  );
-};
+      </header>
+      <div className="page-content">{children}</div>
+    </main>
+  </div>
+);
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          
-          {/* 受保护的私有路由 */}
-          <Route path="/" element={<RequireAuth><SystemLayout><Dashboard /></SystemLayout></RequireAuth>} />
-          <Route path="/daily-log" element={<RequireAuth><SystemLayout><DailyLog /></SystemLayout></RequireAuth>} />
-          <Route path="/tasks" element={<RequireAuth><SystemLayout><Tasks /></SystemLayout></RequireAuth>} />
-          <Route path="/routines" element={<RequireAuth><SystemLayout><Routines /></SystemLayout></RequireAuth>} />
-          <Route path="/analytics" element={<RequireAuth><SystemLayout><Analytics /></SystemLayout></RequireAuth>} />
-
-          {/* 404 兜底 */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<PublicLayout><Login /></PublicLayout>} />
+            <Route path="/register" element={<PublicLayout><Register /></PublicLayout>} />
+            <Route path="/" element={<RequireAuth><SystemLayout><Dashboard /></SystemLayout></RequireAuth>} />
+            <Route path="/daily-log" element={<RequireAuth><SystemLayout><DailyLog /></SystemLayout></RequireAuth>} />
+            <Route path="/tasks" element={<RequireAuth><SystemLayout><Tasks /></SystemLayout></RequireAuth>} />
+            <Route path="/routines" element={<RequireAuth><SystemLayout><Routines /></SystemLayout></RequireAuth>} />
+            <Route path="/analytics" element={<RequireAuth><SystemLayout><Analytics /></SystemLayout></RequireAuth>} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

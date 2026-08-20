@@ -198,41 +198,48 @@ public class AnalyticsService {
         var eveningRoutineOpt = routineDefinitionRepository
                 .findByWorkspaceIdAndTypeAndDeletedAtIsNull(workspaceId, RoutineType.EVENING);
         
-        // 计算总天数
-        long totalDays = startDate.datesUntil(endDate.plusDays(1)).count();
-        
-        // Morning routine统计
+        // Morning 与 Evening 必须各自计算有效天数：两个定义可能不是同一天创建。
+        // 定义创建之前没有“应该完成”的 routine，不能把那些日期算成未完成。
+        LocalDate morningStart = morningRoutineOpt
+                .map(routine -> laterOf(startDate, routine.getCreatedAt().toLocalDate()))
+                .orElse(null);
+        LocalDate eveningStart = eveningRoutineOpt
+                .map(routine -> laterOf(startDate, routine.getCreatedAt().toLocalDate()))
+                .orElse(null);
+
+        long morningTotalDays = eligibleDays(morningStart, endDate);
+        long eveningTotalDays = eligibleDays(eveningStart, endDate);
+
         long morningCompletedDays = 0;
-        if (morningRoutineOpt.isPresent()) {
+        if (morningRoutineOpt.isPresent() && morningTotalDays > 0) {
             UUID morningRoutineId = morningRoutineOpt.get().getId();
             List<RoutineCompletion> morningCompletions = routineCompletionRepository
                     .findByWorkspaceIdAndRoutineDefinitionIdAndDateRange(
-                            workspaceId, morningRoutineId, startDate, endDate);
+                            workspaceId, morningRoutineId, morningStart, endDate);
             morningCompletedDays = morningCompletions.stream()
                     .filter(c -> Boolean.TRUE.equals(c.getCompleted()))
                     .count();
         }
-        
-        double morningCompletionRate = totalDays > 0
-                ? (double) morningCompletedDays / totalDays * 100.0
+
+        double morningCompletionRate = morningTotalDays > 0
+                ? (double) morningCompletedDays / morningTotalDays * 100.0
                 : 0.0;
-        
-        // Evening routine统计
+
         long eveningCompletedDays = 0;
-        if (eveningRoutineOpt.isPresent()) {
+        if (eveningRoutineOpt.isPresent() && eveningTotalDays > 0) {
             UUID eveningRoutineId = eveningRoutineOpt.get().getId();
             List<RoutineCompletion> eveningCompletions = routineCompletionRepository
                     .findByWorkspaceIdAndRoutineDefinitionIdAndDateRange(
-                            workspaceId, eveningRoutineId, startDate, endDate);
+                            workspaceId, eveningRoutineId, eveningStart, endDate);
             eveningCompletedDays = eveningCompletions.stream()
                     .filter(c -> Boolean.TRUE.equals(c.getCompleted()))
                     .count();
         }
-        
-        double eveningCompletionRate = totalDays > 0
-                ? (double) eveningCompletedDays / totalDays * 100.0
+
+        double eveningCompletionRate = eveningTotalDays > 0
+                ? (double) eveningCompletedDays / eveningTotalDays * 100.0
                 : 0.0;
-        
+
         return RoutineCompletionStatsResponse.builder()
                 .startDate(startDate)
                 .endDate(endDate)
@@ -240,10 +247,22 @@ public class AnalyticsService {
                 .eveningCompletionRate(eveningCompletionRate)
                 .morningCompletedDays(morningCompletedDays)
                 .eveningCompletedDays(eveningCompletedDays)
-                .totalDays(totalDays)
+                .morningTotalDays(morningTotalDays)
+                .eveningTotalDays(eveningTotalDays)
                 .build();
     }
     
+    private LocalDate laterOf(LocalDate first, LocalDate second) {
+        return first.isAfter(second) ? first : second;
+    }
+
+    private long eligibleDays(LocalDate eligibleStart, LocalDate endDate) {
+        if (eligibleStart == null || eligibleStart.isAfter(endDate)) {
+            return 0;
+        }
+        return eligibleStart.datesUntil(endDate.plusDays(1)).count();
+    }
+
     /**
      * 计算日期范围内的最高Green streak
      */

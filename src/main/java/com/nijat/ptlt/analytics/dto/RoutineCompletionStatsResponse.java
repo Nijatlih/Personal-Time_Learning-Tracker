@@ -6,45 +6,27 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.util.Map;
-import java.util.UUID;
 
 /**
- * Routine完成统计响应DTO
+ * Routine 完成统计。
+ *
+ * Morning 与 Evening 各自使用独立分母，因为两个定义可能在不同日期创建；
+ * 定义创建之前的日期不属于“应完成但未完成”。
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class RoutineCompletionStatsResponse {
-    /**
-     * 日期范围
-     */
     private LocalDate startDate;
     private LocalDate endDate;
-    
-    /**
-     * Morning routine完成率（0-100）
-     */
+
     private Double morningCompletionRate;
-    
-    /**
-     * Evening routine完成率（0-100）
-     */
     private Double eveningCompletionRate;
-    
-    /**
-     * Morning routine完成天数
-     */
+
     private Long morningCompletedDays;
-    
-    /**
-     * Evening routine完成天数
-     */
     private Long eveningCompletedDays;
-    
-    /**
-     * 总天数
-     */
-    private Long totalDays;
+
+    private Long morningTotalDays;
+    private Long eveningTotalDays;
 }

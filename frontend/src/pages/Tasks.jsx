@@ -79,7 +79,7 @@ const Tasks = () => {
 
   return (
     <div className="fade-in">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
+      <div className="page-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
         <div>
           <h1 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '0.5rem' }}>System Tasks</h1>
           <p style={{ color: 'var(--text-secondary)' }}>Manage your core objectives and daily operations.</p>
@@ -98,7 +98,7 @@ const Tasks = () => {
       <div style={{ display: 'grid', gap: '1rem' }}>
         {tasks.length === 0 ? (
           <div className="glass" style={{ padding: '4rem', textAlign: 'center', borderRadius: '1.5rem' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎯</div>
+            <Circle size={44} style={{ marginBottom: '1rem', color: 'var(--accent-primary)' }} aria-hidden="true" />
             <h3 style={{ marginBottom: '0.5rem' }}>No Active Tasks</h3>
             <p style={{ color: 'var(--text-secondary)' }}>Your system is clear. Add a task to start tracking.</p>
           </div>
@@ -112,12 +112,15 @@ const Tasks = () => {
               gap: '1.5rem',
               opacity: task.status === 'COMPLETED' ? 0.5 : 1
             }}>
-              <div 
+              <button
+                type="button"
                 onClick={() => handleToggleComplete(task.id, task.status)}
-                style={{ cursor: 'pointer', color: task.status === 'COMPLETED' ? 'var(--success)' : 'var(--text-secondary)' }}
+                disabled={task.status === 'COMPLETED'}
+                aria-label={task.status === 'COMPLETED' ? `${task.title} completed` : `Complete ${task.title}`}
+                style={{ width: '44px', height: '44px', display: 'grid', placeItems: 'center', cursor: 'pointer', color: task.status === 'COMPLETED' ? 'var(--success)' : 'var(--text-secondary)', background: 'transparent', border: 0, borderRadius: '0.75rem' }}
               >
                 {task.status === 'COMPLETED' ? <CheckCircle2 size={26} /> : <Circle size={26} />}
-              </div>
+              </button>
               
               <div style={{ flex: 1 }}>
                 <div style={{ 
@@ -154,13 +157,15 @@ const Tasks = () => {
       {showModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-          backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+          backgroundColor: 'var(--overlay)', backdropFilter: 'blur(8px)',
           display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
         }}>
           <div className="glass fade-in" style={{ width: '100%', maxWidth: '500px', padding: '2.5rem', borderRadius: '2rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
               <h2 style={{ fontSize: '1.5rem', fontWeight: '700' }}>New Objective</h2>
-              <X size={24} style={{ cursor: 'pointer', color: 'var(--text-secondary)' }} onClick={() => setShowModal(false)} />
+              <button type="button" className="icon-button" onClick={() => setShowModal(false)} aria-label="Close dialog">
+                <X size={20} />
+              </button>
             </div>
             
             <form onSubmit={handleCreateTask}>
@@ -202,7 +207,7 @@ const Tasks = () => {
                 <button type="submit" className="primary-btn" style={{ flex: 1 }} disabled={submitting}>
                   {submitting ? <Loader2 className="animate-spin" size={20} /> : 'Initialize Task'}
                 </button>
-                <button type="button" className="glass" style={{ flex: 1, borderRadius: '0.75rem', border: 'none', cursor: 'pointer' }} onClick={() => setShowModal(false)}>
+                <button type="button" className="glass" style={{ flex: 1, minHeight: '44px', borderRadius: '0.75rem', color: 'var(--text-primary)', cursor: 'pointer' }} onClick={() => setShowModal(false)}>
                   Cancel
                 </button>
               </div>

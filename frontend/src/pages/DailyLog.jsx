@@ -147,7 +147,7 @@ const DailyLog = () => {
         display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer',
         padding: '1rem 1.25rem', borderRadius: '1rem',
         border: `1px solid ${checked ? 'var(--accent-primary)' : 'var(--border-color)'}`,
-        backgroundColor: checked ? 'rgba(56, 189, 248, 0.06)' : 'transparent',
+        backgroundColor: checked ? 'var(--accent-soft)' : 'transparent',
         transition: 'all 0.2s',
       }}
     >
@@ -192,7 +192,7 @@ const DailyLog = () => {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(380px, 1.4fr) minmax(300px, 1fr)', gap: '2rem', alignItems: 'start' }}>
+      <div className="two-column-grid" style={{ display: 'grid', gap: '2rem', alignItems: 'start' }}>
         <form onSubmit={handleSubmit} className="glass" style={{ padding: '2rem', borderRadius: '1.5rem' }}>
           <div style={{ marginBottom: '2rem' }}>
             <label htmlFor="log-date" style={labelStyle}>
@@ -234,7 +234,7 @@ const DailyLog = () => {
                     style={{
                       flex: 1, padding: '0.875rem 0.5rem', borderRadius: '1rem', cursor: 'pointer',
                       border: `1px solid ${selected ? 'var(--accent-primary)' : 'var(--border-color)'}`,
-                      backgroundColor: selected ? 'rgba(56, 189, 248, 0.1)' : 'transparent',
+                      backgroundColor: selected ? 'var(--accent-soft)' : 'transparent',
                       color: selected ? 'var(--accent-primary)' : 'var(--text-secondary)',
                       fontWeight: selected ? '700' : '500', fontSize: '0.875rem',
                       transition: 'all 0.2s',

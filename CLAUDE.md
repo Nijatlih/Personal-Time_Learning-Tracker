@@ -3,7 +3,7 @@
 ## 这是什么
 
 PTLT (Personal Time & Learning Tracker) —— 个人时间、学习与系统稳定度追踪。
-Spring Boot 3.5.16 / Java 21 后端（`src/`，107 文件，43 端点，14 张表，6 个 Flyway 迁移，
+Spring Boot 3.5.16 / Java 25 后端（`src/`，107 文件，43 端点，14 张表，6 个 Flyway 迁移，
 workspace 级多租户）+ React 19 + Vite 8 前端（`frontend/`，纯 JS，7 个页面）。
 
 ## 定位：自用工具，不做成产品
@@ -31,10 +31,8 @@ Jackson 序列化、共享可变状态、请求校验覆盖面等）。
 
 **完整清单见 [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md)**（含每条的修法与落地状态）。
 
-**P1–P5 已全部完成。** 现在只剩一条需要先定语义的小事：
-`AnalyticsService.getRoutineCompletionStats` 的 `totalDays` 用的是日历天数，
-而不是"有 routine 定义的天数" —— routine 定义在某天创建，创建之前那些天算作"未完成"，
-会把完成率往下拉。与 F3 同一类问题（分母口径），但影响小得多。
+**P1–P5 已全部完成，目前没有开放缺陷。** Routine 完成率已确定为只统计定义创建后的
+有效天数，Morning 与 Evening 使用各自独立的分母；定义创建前的日期不算未完成。
 
 认证的形状已经收敛：token 只在 `JwtAuthenticationFilter` 里解析一次，
 principal 是 `AuthenticatedUser`（userId + workspaceId），controller 用
@@ -44,7 +42,7 @@ principal 是 `AuthenticatedUser`（userId + workspaceId），controller 用
 ## 命令
 
 ```bash
-mvn -B clean verify                      # 35 个测试（11 单元 + 24 集成）
+mvn -B clean verify                      # 37 个测试（11 单元 + 26 集成）
 cd frontend && npm ci && npm run build
 ```
 
@@ -98,7 +96,7 @@ docker run -d --name ptlt-pg -e POSTGRES_PASSWORD=ptltdev \
   只剩一句 "Compilation failure"。
 - 改动实体、迁移、配置或 security 之后，`mvn verify` 绿了还不够 —— 集成测试覆盖的是契约，
   真实启动一次仍是最快发现配置类问题的方式。
-- 本项目 Java 21，ContentFlow 是 17。不要对齐 —— 见 `adr/0002-separate-repositories.md`。
+- 本项目 Java 25，ContentFlow 是 17。不要对齐 —— 见 `adr/0002-separate-repositories.md`。
 
 ## 相关
 

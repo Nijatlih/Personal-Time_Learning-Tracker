@@ -23,7 +23,7 @@
     <properties>
         <java.version>25</java.version>
         <!-- 1.18.36 无法在 JDK 24+ 上运行注解处理器：javac 会 fork 后静默失败。
-             1.18.40 起支持 JDK 25。CI 用 JDK 21，但本地常见更新的 JDK。 -->
+             1.18.40 起支持 JDK 25。CI 与本地构建现在统一使用 JDK 25。 -->
         <lombok.version>1.18.42</lombok.version>
         <postgresql.version>42.7.12</postgresql.version>
         <maven.compiler.source>25</maven.compiler.source>

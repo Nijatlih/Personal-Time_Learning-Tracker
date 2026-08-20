@@ -9,7 +9,8 @@
 > **2026-08-12 同日更新**：**P1–P5 全部完成。** P5 里关于 streak 两列的那条
 > **是我写错了**，已在原处标注撤销并说明原因。下面各节保留原文并在标题上标了状态。
 >
-> 唯一剩下的是 P5 里的 `totalDays` 口径那条 —— 它需要先决定语义，不是能直接动手的活。
+> **2026-08-20 更新**：`totalDays` 口径也已确定并落地。Routine 创建前的日期不算未完成，
+> Morning 与 Evening 分别返回自己的有效天数分母。当前清单已全部关闭。
 
 ---
 
@@ -142,7 +143,7 @@ filter 验证 token 后把它作为 principal 放进 SecurityContext —— 这�
 
 ---
 
-## P5 — 零散项（favicon ✅ 已修；streak 那条是误判；只剩 totalDays 口径）
+## P5 — ✅ 已完成（favicon、streak 核实、Routine 分母口径）
 
 - ~~**`frontend/index.html:5` 引用 `/favicon.svg`，但 `frontend/public/` 目录不存在**~~ ——
   ✅ 已修（`0599cbc`）：补了一个 SVG 图标，dev server 上从 404 变成 200。
@@ -154,9 +155,10 @@ filter 验证 token 后把它作为 principal 放进 SecurityContext —— 这�
   也就是说 streak **已经是纯派生值**，正是当时建议的那个终态 —— 不存在"写路径又存一份"
   这回事，也不存在两边不一致的可能。原文关于 readOnly / FlushMode 的那段推理是在一个
   错误前提上展开的。无需任何改动。
-- **`getRoutineCompletionStats` 的 `totalDays` 用的是日历天数**，而不是"有 routine 定义的天数"。
-  routine 定义是在某天创建的，创建之前那些天算作"未完成"，会把完成率往下拉。
-  与 F3 同一类问题（分母口径），但影响小得多，且需要先决定语义。
+- ~~**`getRoutineCompletionStats` 的 `totalDays` 分母口径。**~~ ✅ 已完成：定义创建前的日期
+  不进入分母；Morning 与 Evening 可能在不同日期创建，因此 API 改为分别返回
+  `morningTotalDays` / `eveningTotalDays`，不再用一个共享的 `totalDays`。新增集成测试守护
+  “查询过去 30 天、今天才创建并完成”必须显示 `1/1 = 100%`，而不是 `1/31`。
 
 ---
 

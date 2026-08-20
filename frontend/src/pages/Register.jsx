@@ -31,14 +31,7 @@ const Register = () => {
   };
 
   return (
-    <div style={{ 
-      height: '100vh', 
-      display: 'flex', 
-      justifyContent: 'center', 
-      alignItems: 'center',
-      background: 'var(--bg-main)',
-      backgroundImage: 'radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.1) 0px, transparent 50%), radial-gradient(at 100% 0%, rgba(129, 140, 248, 0.1) 0px, transparent 50%)'
-    }}>
+    <div style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
       <div className="glass fade-in" style={{ 
         width: '100%', 
         padding: '2.5rem', 
@@ -59,7 +52,7 @@ const Register = () => {
         </div>
 
         {error && (
-          <div style={{ 
+          <div role="alert" style={{
             backgroundColor: 'rgba(239, 68, 68, 0.1)', 
             color: 'var(--danger)', 
             padding: '0.75rem', 
@@ -78,7 +71,9 @@ const Register = () => {
             <div style={{ position: 'relative' }}>
               <Mail size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
               <input 
-                type="email" 
+                type="email"
+                autoComplete="email"
+                className="input-field"
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
                 required
@@ -92,7 +87,9 @@ const Register = () => {
             <div style={{ position: 'relative' }}>
               <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
               <input 
-                type="password" 
+                type="password"
+                autoComplete="new-password"
+                className="input-field"
                 value={formData.password}
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
                 required
@@ -107,7 +104,8 @@ const Register = () => {
             <div style={{ position: 'relative' }}>
               <Building size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
               <input 
-                type="text" 
+                type="text"
+                className="input-field"
                 value={formData.workspaceName}
                 onChange={(e) => setFormData({...formData, workspaceName: e.target.value})}
                 required

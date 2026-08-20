@@ -100,7 +100,7 @@ const Analytics = () => {
     <div className="fade-in">
       {header}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2rem' }}>
+      <div className="analytics-stats" style={{ gap: '1.5rem', marginBottom: '2rem' }}>
         <div className="glass" style={{ padding: '1.5rem', borderRadius: '1.25rem' }}>
           <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', marginBottom: '0.5rem' }}>AVG STABILITY</div>
           <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--accent-primary)' }}>
@@ -121,7 +121,7 @@ const Analytics = () => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1.5rem' }}>
+      <div className="two-column-grid" style={{ display: 'grid', gap: '1.5rem' }}>
         <div className="glass" style={{ padding: '2rem', borderRadius: '1.5rem' }}>
           <h2 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <TrendingUp size={18} /> Stability Distribution
@@ -163,7 +163,7 @@ const Analytics = () => {
             不回退到任何听起来正确的话。
           */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div style={{ padding: '1rem', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
+            <div style={{ padding: '1rem', backgroundColor: 'var(--surface-subtle)', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Target size={16} color="var(--accent-primary)" /> Task Velocity
               </div>
@@ -186,21 +186,21 @@ const Analytics = () => {
                 </p>
               )}
             </div>
-            <div style={{ padding: '1rem', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
+            <div style={{ padding: '1rem', backgroundColor: 'var(--surface-subtle)', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <RefreshCcw size={16} color="var(--success)" /> Habit Consistency
               </div>
-              {routineStats ? (
+              {routineStats && (routineStats.morningTotalDays > 0 || routineStats.eveningTotalDays > 0) ? (
                 <>
                   <Insight
                     label="Morning routine"
                     value={formatPercent(routineStats.morningCompletionRate)}
-                    detail={`${routineStats.morningCompletedDays} of ${routineStats.totalDays} days`}
+                    detail={`${routineStats.morningCompletedDays} of ${routineStats.morningTotalDays} eligible days`}
                   />
                   <Insight
                     label="Evening routine"
                     value={formatPercent(routineStats.eveningCompletionRate)}
-                    detail={`${routineStats.eveningCompletedDays} of ${routineStats.totalDays} days`}
+                    detail={`${routineStats.eveningCompletedDays} of ${routineStats.eveningTotalDays} eligible days`}
                   />
                 </>
               ) : (
