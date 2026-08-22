@@ -35,6 +35,8 @@ const TimeBlockModal = ({ mode, date, startTime, block, tasks, onClose, onSaved 
       || task.id === block?.taskId,
   );
 
+  const hasExistingLink = mode === 'edit' && Boolean(block?.taskId);
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setSubmitting(true);
@@ -148,11 +150,16 @@ const TimeBlockModal = ({ mode, date, startTime, block, tasks, onClose, onSaved 
               value={form.taskId}
               onChange={(event) => setForm((current) => ({ ...current, taskId: event.target.value }))}
             >
-              <option value="">None</option>
+              <option value="" disabled={hasExistingLink}>None</option>
               {availableTasks.map((task) => (
                 <option key={task.id} value={task.id}>{task.title}</option>
               ))}
             </select>
+            {hasExistingLink && (
+              <p style={{ marginTop: '0.4rem', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                Can&apos;t unlink an existing task here yet — delete and recreate the block if you need to remove the link.
+              </p>
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem' }}>
