@@ -161,9 +161,24 @@ git commit -m "feat: add TimeBlock and ScheduleSlot API clients"
 ### Task 3: Schedule CSS (tabs + timeline grid)
 
 **Files:**
-- Modify: `frontend/src/styles/globals.css` (append at end of file, after the existing `::-webkit-scrollbar-thumb` rule at line 409)
+- Modify: `frontend/src/styles/globals.css` (append at the true end of file — the file is 450 lines; earlier drafting of this plan incorrectly assumed EOF at line 409 based on a partial read. The last rule is actually the `@media (prefers-reduced-motion: reduce) { ... }` block closing at line 450.)
 
 - [ ] **Step 1: Append the new classes**
+
+Anchor on the file's real tail:
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+```
+
+Append the new block after this (i.e. at the actual end of the file), not after the `::-webkit-scrollbar-thumb` rule.
 
 Add at the end of `frontend/src/styles/globals.css`:
 
@@ -294,12 +309,17 @@ Use Edit with this anchor (the file's current last rule):
 
 old_string:
 ```css
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 999px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
 ```
 
-new_string: the same three lines, followed by the CSS block above.
+new_string: the same block, followed by the CSS block above (i.e. append, don't replace).
 
 - [ ] **Step 2: Lint**
 
