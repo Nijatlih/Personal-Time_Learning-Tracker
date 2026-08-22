@@ -38,3 +38,5 @@ application-prod.yml
 .env
 .env.*
 !.env.example
+
+.superpowers/
