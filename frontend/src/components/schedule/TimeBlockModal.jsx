@@ -31,7 +31,8 @@ const TimeBlockModal = ({ mode, date, startTime, block, tasks, onClose, onSaved 
   const [error, setError] = useState(null);
 
   const availableTasks = tasks.filter(
-    (task) => task.status !== 'COMPLETED' && task.status !== 'ARCHIVED',
+    (task) => task.status !== 'COMPLETED' && task.status !== 'ARCHIVED'
+      || task.id === block?.taskId,
   );
 
   const handleSubmit = async (event) => {
