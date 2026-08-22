@@ -485,6 +485,7 @@ button:disabled {
 .timeline-header-row {
   display: flex;
   border-bottom: 1px solid var(--border-color);
+  padding-right: 8px;
 }
 
 .timeline-header-spacer {
