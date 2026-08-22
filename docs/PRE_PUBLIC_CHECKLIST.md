@@ -18,13 +18,16 @@
 
 ## 待办
 
-### 1. 加 LICENSE —— 建议
+### ~~1. 加 LICENSE~~ ✅ 已加——建议
 
 仓库没有 `LICENSE` 文件。公开仓库缺 license 在法律上等于"保留所有权利"，别人不能合法复用 ——
 作为作品集通常不是本意。MIT 或 Apache-2.0 都合适；Apache-2.0 额外给出明确的专利授权，
 部分雇主更愿意看到。
 
 **两个仓库建议用同一个 license**，与 `Nijatlih/ContentFlow-AI` 保持一致。
+
+**落地结果**：作者选了 MIT（未与 `ContentFlow-AI` 对齐）。已加 `LICENSE`
+（版权行 `Copyright (c) 2026 Nijatlih`），并在 `README.md` 末尾加了 `## License` 小节指向它。
 
 ### 2. 无需处理二进制文件
 

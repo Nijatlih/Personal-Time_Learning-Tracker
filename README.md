@@ -310,3 +310,9 @@ docker logs ptlt-pg
 - [`adr/0003-drop-invite-and-role-based-access.md`](adr/0003-drop-invite-and-role-based-access.md)：删除 invite/RBAC
 - [`adr/0004-drop-offline-sync.md`](adr/0004-drop-offline-sync.md)：删除离线同步
 - [`adr/0005-single-workspace-per-user.md`](adr/0005-single-workspace-per-user.md)：单用户、单 workspace
+
+---
+
+## License
+
+[MIT](LICENSE)
