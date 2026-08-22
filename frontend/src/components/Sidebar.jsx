@@ -1,4 +1,4 @@
-import { LayoutDashboard, NotebookPen, CheckSquare, Repeat, BarChart3, LogOut, User } from 'lucide-react';
+import { LayoutDashboard, NotebookPen, CheckSquare, Repeat, CalendarClock, BarChart3, LogOut, User } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
@@ -7,6 +7,7 @@ const menuItems = [
   { label: 'Daily Log', icon: NotebookPen, path: '/daily-log' },
   { label: 'Tasks', icon: CheckSquare, path: '/tasks' },
   { label: 'Routines', icon: Repeat, path: '/routines' },
+  { label: 'Schedule', icon: CalendarClock, path: '/schedule' },
   { label: 'Analytics', icon: BarChart3, path: '/analytics' },
 ];
 

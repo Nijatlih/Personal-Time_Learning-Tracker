@@ -10,6 +10,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Tasks from './pages/Tasks';
 import Routines from './pages/Routines';
+import Schedule from './pages/Schedule';
 import Analytics from './pages/Analytics';
 import './styles/globals.css';
 
@@ -60,6 +61,7 @@ function App() {
             <Route path="/daily-log" element={<RequireAuth><SystemLayout><DailyLog /></SystemLayout></RequireAuth>} />
             <Route path="/tasks" element={<RequireAuth><SystemLayout><Tasks /></SystemLayout></RequireAuth>} />
             <Route path="/routines" element={<RequireAuth><SystemLayout><Routines /></SystemLayout></RequireAuth>} />
+            <Route path="/schedule" element={<RequireAuth><SystemLayout><Schedule /></SystemLayout></RequireAuth>} />
             <Route path="/analytics" element={<RequireAuth><SystemLayout><Analytics /></SystemLayout></RequireAuth>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
