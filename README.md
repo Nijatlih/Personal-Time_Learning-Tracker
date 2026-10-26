@@ -144,7 +144,7 @@ http://localhost:8080
 另开一个 **PowerShell** 窗口，不要关闭正在运行后端的窗口：
 
 ```powershell
-cd frontend
+cd <项目根目录>rontend
 npm ci
 npm run dev
 ```
@@ -242,7 +242,7 @@ mvn -B clean verify
 ### 前端验证
 
 ```bash
-cd frontend
+cd <项目根目录>rontend
 npm ci
 npm run lint
 npm run build
