@@ -126,7 +126,7 @@ export JWT_SECRET="$(openssl rand -hex 32)"
 继续使用刚才设置环境变量的**同一个 PowerShell 窗口**。先进入项目根目录，再启动：
 
 ```powershell
-cd C:\Users\nijat\Downloads\Claude\ptlt
+cd <项目根目录>
 mvn spring-boot:run
 ```
 
@@ -144,7 +144,7 @@ http://localhost:8080
 另开一个 **PowerShell** 窗口，不要关闭正在运行后端的窗口：
 
 ```powershell
-cd C:\Users\nijat\Downloads\Claude\ptlt\frontend
+cd frontend
 npm ci
 npm run dev
 ```
