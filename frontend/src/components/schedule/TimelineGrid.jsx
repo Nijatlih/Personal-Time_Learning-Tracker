@@ -1,6 +1,7 @@
 // frontend/src/components/schedule/TimelineGrid.jsx
 import { useEffect, useRef } from 'react';
 import { pixelsToSnappedTime } from '../../utils/schedule';
+import { useLanguage } from '../../hooks/useLanguage';
 
 const PIXELS_PER_HOUR = 60;
 const TOTAL_HOURS = 24;
@@ -15,6 +16,7 @@ const timeToTop = (time) => {
 
 // days: [{ date: 'YYYY-MM-DD', label: string, blocks: TimeBlockResponse[] }]
 const TimelineGrid = ({ days, onSlotClick, onBlockClick }) => {
+  const { t } = useLanguage();
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -73,7 +75,7 @@ const TimelineGrid = ({ days, onSlotClick, onBlockClick }) => {
                     onBlockClick(block);
                   }}
                 >
-                  {block.title || 'Untitled block'}
+                  {block.title || t('schedule.untitledBlock')}
                   {block.taskTitle && <span className="timeline-block-task">{block.taskTitle}</span>}
                 </div>
               ))}

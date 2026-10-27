@@ -29,6 +29,8 @@ export const blockDurationMinutes = (block) =>
 export const sumBlockMinutes = (blocks) =>
   blocks.reduce((total, block) => total + blockDurationMinutes(block), 0);
 
+export const DAY_ORDER = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+
 export const formatDuration = (totalMinutes) => {
   if (totalMinutes <= 0) return '0m';
   const hours = Math.floor(totalMinutes / 60);

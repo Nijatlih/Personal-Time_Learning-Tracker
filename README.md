@@ -21,6 +21,7 @@ PTLT 是一个自用的个人时间、学习与系统稳定度追踪工具。
 - Tasks
 - Routines 与打卡
 - Analytics
+- 中英文界面切换（默认英文，右上角按钮切换，选择保存在浏览器 `localStorage` 的 `lang`）
 
 后端另外提供 Time Block、Schedule Slot、Bootcamp、Alert、Workspace 等 API，暂时没有对应的前端页面。
 
@@ -297,6 +298,7 @@ docker logs ptlt-pg
 - 认证失败返回 401，鉴权失败返回 403。
 - 不属于当前 workspace 的资源统一返回 404，避免泄露资源是否存在。
 - 日期区间必须正序，跨度不超过 366 天。
+- 前端界面文案放在 `frontend/src/i18n/en.js` 和 `zh.js`，两个文件的键必须一致；新增文案要两边同时加，页面里用 `useLanguage()` 的 `t('键')` 取。后端返回的错误信息不翻译。
 
 ---
 

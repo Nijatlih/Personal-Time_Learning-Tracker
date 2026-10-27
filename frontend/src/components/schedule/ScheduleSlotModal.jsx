@@ -2,17 +2,8 @@
 import { useState } from 'react';
 import { Loader2, X, Trash2 } from 'lucide-react';
 import ScheduleSlotService from '../../api/ScheduleSlotService';
-import { addMinutesToTime } from '../../utils/schedule';
-
-const DAY_OPTIONS = [
-  { value: 'MONDAY', label: '周一' },
-  { value: 'TUESDAY', label: '周二' },
-  { value: 'WEDNESDAY', label: '周三' },
-  { value: 'THURSDAY', label: '周四' },
-  { value: 'FRIDAY', label: '周五' },
-  { value: 'SATURDAY', label: '周六' },
-  { value: 'SUNDAY', label: '周日' },
-];
+import { addMinutesToTime, DAY_ORDER } from '../../utils/schedule';
+import { useLanguage } from '../../hooks/useLanguage';
 
 const buildInitialForm = (slot) => {
   if (slot) {
@@ -35,6 +26,7 @@ const buildInitialForm = (slot) => {
 
 // slot: null for create, the full ScheduleSlotResponse (with `version`) for edit
 const ScheduleSlotModal = ({ slot, onClose, onSaved }) => {
+  const { t } = useLanguage();
   const [form, setForm] = useState(() => buildInitialForm(slot));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -58,21 +50,21 @@ const ScheduleSlotModal = ({ slot, onClose, onSaved }) => {
       }
       onSaved();
     } catch (err) {
-      setError(err.message || 'Unable to save template');
+      setError(err.message || t('schedule.slotSaveFailed'));
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!window.confirm('Delete this weekly template?')) return;
+    if (!window.confirm(t('schedule.slotConfirmDelete'))) return;
     setSubmitting(true);
     setError(null);
     try {
       await ScheduleSlotService.delete(slot.id);
       onSaved();
     } catch (err) {
-      setError(err.message || 'Unable to delete template');
+      setError(err.message || t('schedule.slotDeleteFailed'));
       setSubmitting(false);
     }
   };
@@ -82,9 +74,9 @@ const ScheduleSlotModal = ({ slot, onClose, onSaved }) => {
       <div role="dialog" aria-modal="true" aria-labelledby="slot-dialog-title" className="glass fade-in" style={{ width: '100%', maxWidth: '480px', padding: '2rem', borderRadius: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
           <h2 id="slot-dialog-title" style={{ fontSize: '1.3rem', fontWeight: 750 }}>
-            {slot ? 'Edit weekly template' : 'New weekly template'}
+            {slot ? t('schedule.slotEdit') : t('schedule.slotNew')}
           </h2>
-          <button type="button" className="icon-button" onClick={onClose} aria-label="Close dialog"><X size={19} /></button>
+          <button type="button" className="icon-button" onClick={onClose} aria-label={t('common.closeDialog')}><X size={19} /></button>
         </div>
 
         {error && (
@@ -95,22 +87,22 @@ const ScheduleSlotModal = ({ slot, onClose, onSaved }) => {
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '1.25rem' }}>
-            <label htmlFor="slot-day" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Day of week</label>
+            <label htmlFor="slot-day" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>{t('schedule.dayOfWeek')}</label>
             <select
               id="slot-day"
               className="input-field"
               value={form.dayOfWeek}
               onChange={(event) => setForm((current) => ({ ...current, dayOfWeek: event.target.value }))}
             >
-              {DAY_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>{option.label}</option>
+              {DAY_ORDER.map((day) => (
+                <option key={day} value={day}>{t(`day.${day}`)}</option>
               ))}
             </select>
           </div>
 
           <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.25rem' }}>
             <div style={{ flex: 1 }}>
-              <label htmlFor="slot-start" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Start</label>
+              <label htmlFor="slot-start" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>{t('schedule.start')}</label>
               <input
                 id="slot-start"
                 type="time"
@@ -121,7 +113,7 @@ const ScheduleSlotModal = ({ slot, onClose, onSaved }) => {
               />
             </div>
             <div style={{ flex: 1 }}>
-              <label htmlFor="slot-end" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>End</label>
+              <label htmlFor="slot-end" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>{t('schedule.end')}</label>
               <input
                 id="slot-end"
                 type="time"
@@ -134,7 +126,7 @@ const ScheduleSlotModal = ({ slot, onClose, onSaved }) => {
           </div>
 
           <div style={{ marginBottom: '1.25rem' }}>
-            <label htmlFor="slot-title" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Title</label>
+            <label htmlFor="slot-title" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>{t('schedule.fieldTitle')}</label>
             <input
               id="slot-title"
               className="input-field"
@@ -145,7 +137,7 @@ const ScheduleSlotModal = ({ slot, onClose, onSaved }) => {
           </div>
 
           <div style={{ marginBottom: '1.75rem' }}>
-            <label htmlFor="slot-description" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Description</label>
+            <label htmlFor="slot-description" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>{t('schedule.fieldDescription')}</label>
             <textarea
               id="slot-description"
               className="input-field"
@@ -159,14 +151,14 @@ const ScheduleSlotModal = ({ slot, onClose, onSaved }) => {
 
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             <button type="submit" className="primary-btn" style={{ flex: 1 }} disabled={submitting}>
-              {submitting ? <Loader2 className="animate-spin" size={19} /> : (slot ? 'Save changes' : 'Create template')}
+              {submitting ? <Loader2 className="animate-spin" size={19} /> : (slot ? t('common.saveChanges') : t('schedule.slotCreate'))}
             </button>
             {slot && (
-              <button type="button" className="icon-button" onClick={handleDelete} disabled={submitting} aria-label="Delete template" title="Delete">
+              <button type="button" className="icon-button" onClick={handleDelete} disabled={submitting} aria-label={t('schedule.slotDelete')} title={t('common.delete')}>
                 <Trash2 size={18} color="var(--danger)" />
               </button>
             )}
-            <button type="button" className="glass" style={{ minHeight: '44px', padding: '0.7rem 1.25rem', borderRadius: '0.8rem', color: 'var(--text-primary)', cursor: 'pointer' }} onClick={onClose}>Cancel</button>
+            <button type="button" className="glass" style={{ minHeight: '44px', padding: '0.7rem 1.25rem', borderRadius: '0.8rem', color: 'var(--text-primary)', cursor: 'pointer' }} onClick={onClose}>{t('common.cancel')}</button>
           </div>
         </form>
       </div>

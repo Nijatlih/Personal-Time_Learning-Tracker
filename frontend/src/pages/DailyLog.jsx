@@ -3,6 +3,7 @@ import DailyRecordService from '../api/DailyRecordService';
 import {
   AlertCircle, CalendarDays, CheckCircle2, Flame, Loader2, Moon, Save, Sun, Target, Zap,
 } from 'lucide-react';
+import { useLanguage } from '../hooks/useLanguage';
 
 /** 取本地时区的 YYYY-MM-DD；toISOString() 先转 UTC，跨时区会差一天。 */
 const toLocalDateString = (d) => {
@@ -17,9 +18,9 @@ const STATUS_COLOR = {
 };
 
 const ENERGY_OPTIONS = [
-  { value: 'LOW', label: 'Low', points: 0 },
-  { value: 'MEDIUM', label: 'Medium', points: 10 },
-  { value: 'HIGH', label: 'High', points: 15 },
+  { value: 'LOW', points: 0 },
+  { value: 'MEDIUM', points: 10 },
+  { value: 'HIGH', points: 15 },
 ];
 
 const EMPTY_FORM = { coreTaskCompleted: false, cognitiveEnergy: 'MEDIUM', alignedWithGoals: false };
@@ -55,6 +56,7 @@ const Metric = ({ icon: Icon, label, value, color }) => (
  *   在这里勾选有用。要拿这 40 分得去 Routines 页打卡。
  */
 const DailyLog = () => {
+  const { t } = useLanguage();
   const [date, setDate] = useState(() => toLocalDateString(new Date()));
   const [form, setForm] = useState(EMPTY_FORM);
   const [record, setRecord] = useState(null);
@@ -118,7 +120,7 @@ const DailyLog = () => {
       const data = await DailyRecordService.save({ date, ...form });
       applyRecord(data);
       setError(null);
-      setNotice(`Saved. Stability for ${date}: ${data.stabilityScore} (${data.stabilityStatus}).`);
+      setNotice(t('dailyLog.saved', { date, score: data.stabilityScore, status: data.stabilityStatus }));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -174,9 +176,9 @@ const DailyLog = () => {
   return (
     <div className="fade-in">
       <header style={{ marginBottom: '2.5rem' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '0.5rem' }}>Daily Log</h1>
+        <h1 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '0.5rem' }}>{t('dailyLog.title')}</h1>
         <p style={{ color: 'var(--text-secondary)' }}>
-          Record the day. Everything on the Dashboard and Analytics pages is derived from these entries.
+          {t('dailyLog.subtitle')}
         </p>
       </header>
 
@@ -197,7 +199,7 @@ const DailyLog = () => {
           <div style={{ marginBottom: '2rem' }}>
             <label htmlFor="log-date" style={labelStyle}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-                <CalendarDays size={14} /> Date
+                <CalendarDays size={14} /> {t('dailyLog.date')}
               </span>
             </label>
             <input
@@ -214,15 +216,15 @@ const DailyLog = () => {
             />
             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
               {loading
-                ? 'Loading…'
+                ? t('dailyLog.loading')
                 : record
-                  ? 'An entry already exists for this date — saving will update it.'
-                  : 'No entry for this date yet.'}
+                  ? t('dailyLog.entryExists')
+                  : t('dailyLog.noEntry')}
             </div>
           </div>
 
           <div style={{ marginBottom: '2rem' }}>
-            <span style={labelStyle}>Cognitive Energy</span>
+            <span style={labelStyle}>{t('dailyLog.cognitiveEnergy')}</span>
             <div style={{ display: 'flex', gap: '0.75rem' }}>
               {ENERGY_OPTIONS.map((option) => {
                 const selected = form.cognitiveEnergy === option.value;
@@ -240,7 +242,7 @@ const DailyLog = () => {
                       transition: 'all 0.2s',
                     }}
                   >
-                    {option.label}
+                    {t(`dailyLog.energy.${option.value}`)}
                     <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: '0.2rem' }}>
                       +{option.points}
                     </div>
@@ -254,32 +256,32 @@ const DailyLog = () => {
             {toggleRow(
               form.coreTaskCompleted,
               (v) => setForm((f) => ({ ...f, coreTaskCompleted: v })),
-              'core-task', 'Core task completed', 'The one thing that had to happen today', 30,
+              'core-task', t('dailyLog.coreTask'), t('dailyLog.coreTaskSub'), 30,
             )}
             {toggleRow(
               form.alignedWithGoals,
               (v) => setForm((f) => ({ ...f, alignedWithGoals: v })),
-              'aligned', 'Aligned with goals', 'The day moved the long-term direction forward', 15,
+              'aligned', t('dailyLog.aligned'), t('dailyLog.alignedSub'), 15,
             )}
           </div>
 
           <button type="submit" className="primary-btn" style={{ width: '100%' }} disabled={saving || loading}>
-            {saving ? <Loader2 className="animate-spin" size={20} /> : (<><Save size={18} /> Save Entry</>)}
+            {saving ? <Loader2 className="animate-spin" size={20} /> : (<><Save size={18} /> {t('dailyLog.save')}</>)}
           </button>
         </form>
 
         <div style={{ display: 'grid', gap: '1rem' }}>
           <Metric
             icon={Zap}
-            label={record ? 'Stability (saved)' : 'Stability (projected)'}
+            label={record ? t('dailyLog.stabilitySaved') : t('dailyLog.stabilityProjected')}
             value={`${record ? record.stabilityScore : projected} / 100`}
             color={record ? STATUS_COLOR[record.stabilityStatus] : 'var(--accent-primary)'}
           />
 
           {record && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <Metric icon={Flame} label="Green streak" value={`${record.greenStreak ?? 0}d`} />
-              <Metric icon={Target} label="Uptime streak" value={`${record.uptimeStreak ?? 0}d`} />
+              <Metric icon={Flame} label={t('dailyLog.greenStreak')} value={t('common.daysShort', { count: record.greenStreak ?? 0 })} />
+              <Metric icon={Target} label={t('dailyLog.uptimeStreak')} value={t('common.daysShort', { count: record.uptimeStreak ?? 0 })} />
             </div>
           )}
 
@@ -289,11 +291,11 @@ const DailyLog = () => {
           */}
           <div className="glass" style={{ padding: '1.5rem', borderRadius: '1.25rem' }}>
             <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: '1rem' }}>
-              Routines (derived)
+              {t('dailyLog.routinesDerived')}
             </div>
             {[
-              { icon: Sun, label: 'Morning', done: record?.morningRoutineCompleted },
-              { icon: Moon, label: 'Evening', done: record?.eveningRoutineCompleted },
+              { icon: Sun, label: t('dailyLog.morning'), done: record?.morningRoutineCompleted },
+              { icon: Moon, label: t('dailyLog.evening'), done: record?.eveningRoutineCompleted },
             ].map(({ icon: Icon, label, done }) => (
               <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem', fontSize: '0.875rem' }}>
                 <Icon size={16} style={{ color: done ? 'var(--success)' : 'var(--text-secondary)' }} />
@@ -304,7 +306,7 @@ const DailyLog = () => {
               </div>
             ))}
             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.75rem', lineHeight: 1.5 }}>
-              Computed from routine check-ins, not editable here. Check in on the Routines page to earn these 40 points.
+              {t('dailyLog.routinesNote')}
             </div>
           </div>
         </div>

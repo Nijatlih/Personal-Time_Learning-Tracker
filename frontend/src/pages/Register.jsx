@@ -3,8 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import AuthService from '../api/AuthService';
 import { useAuth } from '../hooks/useAuth';
 import { Mail, Lock, Building, Loader2, UserPlus } from 'lucide-react';
+import { useLanguage } from '../hooks/useLanguage';
 
 const Register = () => {
+  const { t } = useLanguage();
   const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
@@ -24,7 +26,7 @@ const Register = () => {
       login({ email: formData.email, userId: data.userId }, data.accessToken, data.refreshToken);
       navigate('/');
     } catch (err) {
-      setError(err.message || 'Registration failed');
+      setError(err.message || t('auth.registerFailed'));
     } finally {
       setLoading(false);
     }
@@ -47,8 +49,8 @@ const Register = () => {
             WebkitTextFillColor: 'transparent',
             marginBottom: '0.5rem'
           }}>PTLT</div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '0.25rem' }}>Create Account</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Start tracking your time and learning.</p>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: '700', marginBottom: '0.25rem' }}>{t('auth.createAccount')}</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{t('auth.createAccountSub')}</p>
         </div>
 
         {error && (
@@ -67,7 +69,7 @@ const Register = () => {
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Email Address</label>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.4rem' }}>{t('auth.email')}</label>
             <div style={{ position: 'relative' }}>
               <Mail size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
               <input 
@@ -83,7 +85,7 @@ const Register = () => {
           </div>
 
           <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Password</label>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.4rem' }}>{t('auth.password')}</label>
             <div style={{ position: 'relative' }}>
               <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
               <input 
@@ -100,7 +102,7 @@ const Register = () => {
           </div>
 
           <div style={{ marginBottom: '2rem' }}>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.4rem' }}>Default Workspace Name</label>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.4rem' }}>{t('auth.workspaceName')}</label>
             <div style={{ position: 'relative' }}>
               <Building size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
               <input 
@@ -109,7 +111,7 @@ const Register = () => {
                 value={formData.workspaceName}
                 onChange={(e) => setFormData({...formData, workspaceName: e.target.value})}
                 required
-                placeholder="e.g. Personal"
+                placeholder={t('auth.workspacePlaceholder')}
                 style={{ width: '100%', backgroundColor: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: '0.75rem', padding: '0.75rem 1rem 0.75rem 2.5rem', color: 'white', outline: 'none' }} 
               />
             </div>
@@ -135,14 +137,14 @@ const Register = () => {
           >
             {loading ? <Loader2 className="animate-spin" size={20} /> : (
               <>
-                Create Account <UserPlus size={18} />
+                {t('auth.createAccount')} <UserPlus size={18} />
               </>
             )}
           </button>
         </form>
 
         <p style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-          Already have an account? <Link to="/login" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>Sign In</Link>
+          {t('auth.haveAccount')} <Link to="/login" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>{t('auth.signIn')}</Link>
         </p>
       </div>
     </div>

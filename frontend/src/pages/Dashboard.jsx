@@ -5,6 +5,10 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { TrendingUp, Award, Zap, Activity, CheckCircle2, ArrowRight, AlertCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../hooks/useLanguage';
+
+// 加载失败且后端没给出错误文本时用这个键，渲染时再按当前语言翻译。
+const LOAD_FAILED = 'dashboard.loadFailed';
 
 const StatCard = ({ label, value, icon: Icon, color, delay }) => (
   <div className="glass fade-in" style={{ padding: '1.5rem', borderRadius: '1.25rem', flex: 1, animationDelay: `${delay}s` }}>
@@ -21,6 +25,7 @@ const StatCard = ({ label, value, icon: Icon, color, delay }) => (
 );
 
 const Dashboard = () => {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
@@ -48,7 +53,7 @@ const Dashboard = () => {
         // 此前这里只 console.error，页面照常渲染一堆 0 —— 与 Analytics 那条
         // 缺陷（F7）同形。加上错误横幅，让"拿不到数据"和"数据真的是 0"能区分。
         console.error(err);
-        if (!cancelled) setError(err.message || '无法加载 Dashboard 数据');
+        if (!cancelled) setError(err.message || LOAD_FAILED);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -59,42 +64,42 @@ const Dashboard = () => {
     };
   }, []);
 
-  if (loading) return <div className="loading-screen">SYNCING SYSTEM...</div>;
+  if (loading) return <div className="loading-screen">{t('dashboard.loading')}</div>;
 
   return (
     <div className="fade-in">
       <header className="page-heading" style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <div>
-          <div style={{ color: 'var(--accent-primary)', fontWeight: '700', fontSize: '0.875rem', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Command Center</div>
-          <h1 style={{ fontSize: '2.25rem', fontWeight: '800' }}>Welcome, {user?.email?.split('@')[0]}</h1>
+          <div style={{ color: 'var(--accent-primary)', fontWeight: '700', fontSize: '0.875rem', marginBottom: '0.5rem', textTransform: 'uppercase' }}>{t('dashboard.commandCenter')}</div>
+          <h1 style={{ fontSize: '2.25rem', fontWeight: '800' }}>{t('dashboard.welcome', { name: user?.email?.split('@')[0] })}</h1>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>System Uptime</div>
-          <div style={{ fontWeight: '700', fontSize: '1.125rem' }}>{data?.uptimeStreak || 0} Days</div>
+          <div style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{t('dashboard.uptime')}</div>
+          <div style={{ fontWeight: '700', fontSize: '1.125rem' }}>{t('common.days', { count: data?.uptimeStreak || 0 })}</div>
         </div>
       </header>
 
       {/* 与 Tasks/Routines/Analytics 已有的错误横幅写法保持一致 */}
       {error && (
         <div className="glass" style={{ padding: '1rem', marginBottom: '2rem', borderColor: 'var(--danger)', color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <AlertCircle size={20} /> {error}
+          <AlertCircle size={20} /> {error === LOAD_FAILED ? t(LOAD_FAILED) : error}
         </div>
       )}
 
       {/* --- Key Metrics --- */}
       <div className="wide-stats" style={{ gap: '1.5rem', marginBottom: '2.5rem' }}>
-        <StatCard label="Stability Index" value={data?.currentStabilityScore || 0} icon={Zap} color="#38bdf8" delay={0.1} />
-        <StatCard label="System Status" value={data?.currentStabilityStatus || 'UNKNOWN'} icon={Activity} color="#10b981" delay={0.2} />
-        <StatCard label="Efficiency Streak" value={`${data?.greenStreak || 0}d`} icon={Award} color="#818cf8" delay={0.3} />
+        <StatCard label={t('dashboard.stabilityIndex')} value={data?.currentStabilityScore || 0} icon={Zap} color="#38bdf8" delay={0.1} />
+        <StatCard label={t('dashboard.systemStatus')} value={data?.currentStabilityStatus || t('dashboard.unknown')} icon={Activity} color="#10b981" delay={0.2} />
+        <StatCard label={t('dashboard.efficiencyStreak')} value={t('common.daysShort', { count: data?.greenStreak || 0 })} icon={Award} color="#818cf8" delay={0.3} />
       </div>
 
       <div className="dashboard-grid" style={{ display: 'grid', gap: '1.5rem' }}>
         {/* --- Stability Chart --- */}
         <div className="glass" style={{ padding: '2rem', borderRadius: '1.5rem', height: '450px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '700' }}>Stability Performance</h2>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '700' }}>{t('dashboard.stabilityPerformance')}</h2>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--success)' }}>
-              <TrendingUp size={16} /> Last 30 days
+              <TrendingUp size={16} /> {t('dashboard.last30')}
             </div>
           </div>
           
@@ -122,29 +127,29 @@ const Dashboard = () => {
         {/* --- Quick Tasks --- */}
         <div className="glass" style={{ padding: '2rem', borderRadius: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '700' }}>Immediate Focus</h2>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '700' }}>{t('dashboard.immediateFocus')}</h2>
             <button onClick={() => navigate('/tasks')} style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.875rem', fontWeight: '600' }}>
-              View All <ArrowRight size={14} />
+              {t('dashboard.viewAll')} <ArrowRight size={14} />
             </button>
           </div>
 
           <div style={{ display: 'grid', gap: '1rem' }}>
             {miniTasks.length === 0 ? (
-              <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>No immediate tasks. System optimized.</p>
+              <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>{t('dashboard.noTasks')}</p>
             ) : (
-              miniTasks.map(t => (
-                <div key={t.id} style={{ padding: '1rem', backgroundColor: 'var(--surface-subtle)', borderRadius: '1rem', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              miniTasks.map(task => (
+                <div key={task.id} style={{ padding: '1rem', backgroundColor: 'var(--surface-subtle)', borderRadius: '1rem', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   <CheckCircle2 size={20} color="var(--text-secondary)" />
-                  <div style={{ fontSize: '0.9375rem', fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
+                  <div style={{ fontSize: '0.9375rem', fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</div>
                 </div>
               ))
             )}
           </div>
 
           <div style={{ marginTop: '2.5rem', padding: '1.5rem', backgroundColor: 'var(--accent-soft)', borderRadius: '1.25rem', border: '1px dashed var(--accent-primary)' }}>
-            <h4 style={{ fontSize: '0.875rem', fontWeight: '700', marginBottom: '0.5rem', color: 'var(--accent-primary)' }}>Today’s focus</h4>
+            <h4 style={{ fontSize: '0.875rem', fontWeight: '700', marginBottom: '0.5rem', color: 'var(--accent-primary)' }}>{t('dashboard.todayFocus')}</h4>
             <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-              Complete your core task, check in routines, then save today’s Daily Log to keep the dashboard current.
+              {t('dashboard.todayFocusBody')}
             </p>
           </div>
         </div>

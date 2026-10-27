@@ -1,8 +1,10 @@
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
+import { useLanguage } from '../hooks/useLanguage';
 
 const ThemeToggle = () => {
   const { theme, toggleTheme } = useTheme();
+  const { t } = useLanguage();
   const isDark = theme === 'dark';
 
   return (
@@ -10,8 +12,8 @@ const ThemeToggle = () => {
       type="button"
       className="icon-button theme-toggle"
       onClick={toggleTheme}
-      aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
-      title={isDark ? 'Light theme' : 'Dark theme'}
+      aria-label={isDark ? t('theme.toLight') : t('theme.toDark')}
+      title={isDark ? t('theme.light') : t('theme.dark')}
     >
       {isDark ? <Sun size={19} /> : <Moon size={19} />}
     </button>

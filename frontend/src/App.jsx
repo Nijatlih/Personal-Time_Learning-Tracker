@@ -1,9 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './hooks/AuthProvider';
 import { ThemeProvider } from './hooks/ThemeProvider';
+import { LanguageProvider } from './hooks/LanguageProvider';
 import { useAuth } from './hooks/useAuth';
 import Sidebar from './components/Sidebar';
 import ThemeToggle from './components/ThemeToggle';
+import LanguageToggle from './components/LanguageToggle';
 import Dashboard from './pages/Dashboard';
 import DailyLog from './pages/DailyLog';
 import Login from './pages/Login';
@@ -13,6 +15,7 @@ import Routines from './pages/Routines';
 import Schedule from './pages/Schedule';
 import Analytics from './pages/Analytics';
 import './styles/globals.css';
+import { useLanguage } from './hooks/useLanguage';
 
 const RequireAuth = ({ children }) => {
   const { token } = useAuth();
@@ -22,12 +25,14 @@ const RequireAuth = ({ children }) => {
 
 const PublicLayout = ({ children }) => (
   <div className="public-page">
-    <div className="public-theme-toggle"><ThemeToggle /></div>
+    <div className="public-theme-toggle"><LanguageToggle /><ThemeToggle /></div>
     {children}
   </div>
 );
 
-const SystemLayout = ({ children }) => (
+const SystemLayout = ({ children }) => {
+  const { t } = useLanguage();
+  return (
   <div className="app-layout">
     <Sidebar />
     <main className="main-content" id="main-content">
@@ -35,23 +40,28 @@ const SystemLayout = ({ children }) => (
         <div className="system-header-inner">
           <div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
-              Personal workspace
+              {t('shell.workspace')}
             </div>
             <div style={{ fontSize: '0.875rem', color: 'var(--text-primary)', marginTop: '0.15rem' }}>
-              System status: <span style={{ color: 'var(--success)', fontWeight: 700 }}>Online</span>
+              {t('shell.statusLabel')} <span style={{ color: 'var(--success)', fontWeight: 700 }}>{t('shell.online')}</span>
             </div>
           </div>
-          <ThemeToggle />
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <LanguageToggle />
+            <ThemeToggle />
+          </div>
         </div>
       </header>
       <div className="page-content">{children}</div>
     </main>
   </div>
-);
+  );
+};
 
 function App() {
   return (
     <ThemeProvider>
+      <LanguageProvider>
       <AuthProvider>
         <BrowserRouter>
           <Routes>
@@ -67,6 +77,7 @@ function App() {
           </Routes>
         </BrowserRouter>
       </AuthProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }

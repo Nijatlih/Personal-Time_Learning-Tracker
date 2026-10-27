@@ -3,14 +3,11 @@ import { useEffect, useState } from 'react';
 import { Loader2, AlertCircle, Plus, Pencil } from 'lucide-react';
 import ScheduleSlotService from '../../api/ScheduleSlotService';
 import ScheduleSlotModal from '../../components/schedule/ScheduleSlotModal';
-
-const DAY_ORDER = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
-const DAY_LABELS = {
-  MONDAY: '周一', TUESDAY: '周二', WEDNESDAY: '周三', THURSDAY: '周四',
-  FRIDAY: '周五', SATURDAY: '周六', SUNDAY: '周日',
-};
+import { DAY_ORDER } from '../../utils/schedule';
+import { useLanguage } from '../../hooks/useLanguage';
 
 const TemplatesView = () => {
+  const { t } = useLanguage();
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -59,10 +56,10 @@ const TemplatesView = () => {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-          每周固定安排的参考列表，不会自动生成时间块。
+          {t('schedule.templatesHint')}
         </p>
         <button type="button" className="primary-btn" onClick={openCreate}>
-          <Plus size={18} /> New template
+          <Plus size={18} /> {t('schedule.newTemplate')}
         </button>
       </div>
 
@@ -80,10 +77,10 @@ const TemplatesView = () => {
         return (
           <section key={day} style={{ marginBottom: '1.5rem' }}>
             <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
-              {DAY_LABELS[day]}
+              {t(`day.${day}`)}
             </div>
             {daySlots.length === 0 ? (
-              <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>没有安排</div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{t('schedule.nothingPlanned')}</div>
             ) : (
               daySlots.map((slot) => (
                 <div
@@ -92,12 +89,12 @@ const TemplatesView = () => {
                   style={{ padding: '0.75rem 1rem', marginBottom: '0.5rem', borderRadius: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                 >
                   <div>
-                    <div style={{ fontWeight: 600 }}>{slot.title || 'Untitled'}</div>
+                    <div style={{ fontWeight: 600 }}>{slot.title || t('schedule.untitled')}</div>
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                       {slot.startTime.slice(0, 5)} – {slot.endTime.slice(0, 5)}
                     </div>
                   </div>
-                  <button type="button" className="icon-button" onClick={() => openEdit(slot)} aria-label={`Edit ${slot.title || 'template'}`}>
+                  <button type="button" className="icon-button" onClick={() => openEdit(slot)} aria-label={t('schedule.editItem', { title: slot.title || t('schedule.templateFallback') })}>
                     <Pencil size={17} />
                   </button>
                 </div>

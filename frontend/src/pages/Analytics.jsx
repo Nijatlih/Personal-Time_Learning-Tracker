@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import AnalyticsService from '../api/AnalyticsService';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { TrendingUp, Target, RefreshCcw, Info, AlertCircle } from 'lucide-react';
+import { useLanguage } from '../hooks/useLanguage';
 
 const COLORS = {
   GREEN: '#10b981',
@@ -21,6 +22,9 @@ const formatPercent = (value) =>
   typeof value === 'number' ? `${value.toFixed(0)}%` : '—';
 
 /** Performance Insights 里的一行：指标名 + 百分比 + 分子分母。 */
+// 加载失败且后端没给出错误文本时用这个键，渲染时再按当前语言翻译。
+const LOAD_FAILED = 'analytics.loadFailed';
+
 const Insight = ({ label, value, detail }) => (
   <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', marginTop: '0.5rem' }}>
     <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', flex: 1 }}>{label}</span>
@@ -31,6 +35,7 @@ const Insight = ({ label, value, detail }) => (
 );
 
 const Analytics = () => {
+  const { t } = useLanguage();
   const [stabilityData, setStabilityData] = useState(null);
   const [taskStats, setTaskStats] = useState(null);
   const [routineStats, setRoutineStats] = useState(null);
@@ -60,7 +65,7 @@ const Analytics = () => {
       })
       .catch(err => {
         console.error(err);
-        setError(err.message || '无法加载分析数据');
+        setError(err.message || LOAD_FAILED);
         setLoading(false);
       });
   }, []);
@@ -73,12 +78,12 @@ const Analytics = () => {
     }));
   };
 
-  if (loading) return <div style={{ color: 'var(--text-secondary)' }}>Calculating analytics...</div>;
+  if (loading) return <div style={{ color: 'var(--text-secondary)' }}>{t('analytics.loading')}</div>;
 
   const header = (
     <header style={{ marginBottom: '2.5rem' }}>
-      <h1 style={{ fontSize: '1.875rem', fontWeight: '700' }}>Analytics</h1>
-      <p style={{ color: 'var(--text-secondary)' }}>Deep dive into your system performance over the last 30 days.</p>
+      <h1 style={{ fontSize: '1.875rem', fontWeight: '700' }}>{t('analytics.title')}</h1>
+      <p style={{ color: 'var(--text-secondary)' }}>{t('analytics.subtitle')}</p>
     </header>
   );
 
@@ -90,7 +95,7 @@ const Analytics = () => {
       <div className="fade-in">
         {header}
         <div className="glass" style={{ padding: '1rem', marginBottom: '2rem', borderColor: 'var(--danger)', color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <AlertCircle size={20} /> {error}
+          <AlertCircle size={20} /> {error === LOAD_FAILED ? t(LOAD_FAILED) : error}
         </div>
       </div>
     );
@@ -102,21 +107,21 @@ const Analytics = () => {
 
       <div className="analytics-stats" style={{ gap: '1.5rem', marginBottom: '2rem' }}>
         <div className="glass" style={{ padding: '1.5rem', borderRadius: '1.25rem' }}>
-          <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', marginBottom: '0.5rem' }}>AVG STABILITY</div>
+          <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', marginBottom: '0.5rem' }}>{t('analytics.avgStability')}</div>
           <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--accent-primary)' }}>
             {stabilityData?.averageScore?.toFixed(1) || '0.0'}
           </div>
         </div>
         <div className="glass" style={{ padding: '1.5rem', borderRadius: '1.25rem' }}>
-          <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', marginBottom: '0.5rem' }}>MAX GREEN STREAK</div>
+          <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', marginBottom: '0.5rem' }}>{t('analytics.maxGreen')}</div>
           <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--success)' }}>
-            {stabilityData?.maxGreenStreak || 0} Days
+            {t('common.days', { count: stabilityData?.maxGreenStreak || 0 })}
           </div>
         </div>
         <div className="glass" style={{ padding: '1.5rem', borderRadius: '1.25rem' }}>
-          <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', marginBottom: '0.5rem' }}>MAX UPTIME</div>
+          <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: '600', marginBottom: '0.5rem' }}>{t('analytics.maxUptime')}</div>
           <div style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--accent-secondary)' }}>
-            {stabilityData?.maxUptimeStreak || 0} Days
+            {t('common.days', { count: stabilityData?.maxUptimeStreak || 0 })}
           </div>
         </div>
       </div>
@@ -124,7 +129,7 @@ const Analytics = () => {
       <div className="two-column-grid" style={{ display: 'grid', gap: '1.5rem' }}>
         <div className="glass" style={{ padding: '2rem', borderRadius: '1.5rem' }}>
           <h2 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <TrendingUp size={18} /> Stability Distribution
+            <TrendingUp size={18} /> {t('analytics.distribution')}
           </h2>
           <div style={{ height: '300px' }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -151,7 +156,7 @@ const Analytics = () => {
 
         <div className="glass" style={{ padding: '2rem', borderRadius: '1.5rem' }}>
           <h2 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Info size={18} /> Performance Insights
+            <Info size={18} /> {t('analytics.insights')}
           </h2>
           {/*
             这两块此前是硬编码文案："Your morning routines have a 85% consistency rate"
@@ -165,47 +170,47 @@ const Analytics = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div style={{ padding: '1rem', backgroundColor: 'var(--surface-subtle)', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Target size={16} color="var(--accent-primary)" /> Task Velocity
+                <Target size={16} color="var(--accent-primary)" /> {t('analytics.taskVelocity')}
               </div>
               {taskStats?.totalTasks > 0 ? (
                 <>
                   <Insight
-                    label="Scheduled tasks completed"
+                    label={t('analytics.scheduledDone')}
                     value={formatPercent(taskStats.completionRate)}
-                    detail={`${taskStats.completedTasks} of ${taskStats.totalTasks}`}
+                    detail={t('analytics.ofTotal', { done: taskStats.completedTasks, total: taskStats.totalTasks })}
                   />
                   <Insight
-                    label="Core tasks completed"
+                    label={t('analytics.coreDone')}
                     value={formatPercent(taskStats.coreTaskCompletionRate)}
-                    detail={`${taskStats.coreTasksCompleted} of ${taskStats.coreTasksTotal}`}
+                    detail={t('analytics.ofTotal', { done: taskStats.coreTasksCompleted, total: taskStats.coreTasksTotal })}
                   />
                 </>
               ) : (
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                  No tasks were scheduled in this period.
+                  {t('analytics.noTasks')}
                 </p>
               )}
             </div>
             <div style={{ padding: '1rem', backgroundColor: 'var(--surface-subtle)', borderRadius: '1rem', border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <RefreshCcw size={16} color="var(--success)" /> Habit Consistency
+                <RefreshCcw size={16} color="var(--success)" /> {t('analytics.habitConsistency')}
               </div>
               {routineStats && (routineStats.morningTotalDays > 0 || routineStats.eveningTotalDays > 0) ? (
                 <>
                   <Insight
-                    label="Morning routine"
+                    label={t('analytics.morningRoutine')}
                     value={formatPercent(routineStats.morningCompletionRate)}
-                    detail={`${routineStats.morningCompletedDays} of ${routineStats.morningTotalDays} eligible days`}
+                    detail={t('analytics.eligibleDays', { done: routineStats.morningCompletedDays, total: routineStats.morningTotalDays })}
                   />
                   <Insight
-                    label="Evening routine"
+                    label={t('analytics.eveningRoutine')}
                     value={formatPercent(routineStats.eveningCompletionRate)}
-                    detail={`${routineStats.eveningCompletedDays} of ${routineStats.eveningTotalDays} eligible days`}
+                    detail={t('analytics.eligibleDays', { done: routineStats.eveningCompletedDays, total: routineStats.eveningTotalDays })}
                   />
                 </>
               ) : (
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                  No routine data for this period.
+                  {t('analytics.noRoutines')}
                 </p>
               )}
             </div>

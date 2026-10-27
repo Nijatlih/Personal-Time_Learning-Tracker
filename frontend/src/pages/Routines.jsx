@@ -3,6 +3,7 @@ import RoutineService from '../api/RoutineService';
 import {
   Sun, Moon, CheckCircle2, Loader2, AlertCircle, TrendingUp, Plus, Pencil, X,
 } from 'lucide-react';
+import { useLanguage } from '../hooks/useLanguage';
 
 const toLocalDateString = (d) => {
   const pad = (n) => String(n).padStart(2, '0');
@@ -12,6 +13,7 @@ const toLocalDateString = (d) => {
 const EMPTY_FORM = { type: 'MORNING', name: '', description: '' };
 
 const RoutineCard = ({ routine, onComplete, onEdit, completing }) => {
+  const { t } = useLanguage();
   const isMorning = routine.type === 'MORNING';
 
   return (
@@ -37,7 +39,7 @@ const RoutineCard = ({ routine, onComplete, onEdit, completing }) => {
         <div style={{ minWidth: 0 }}>
           <h3 style={{ fontSize: '1.125rem', fontWeight: '700', marginBottom: '0.25rem' }}>{routine.name}</h3>
           <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-            {routine.description || `${isMorning ? 'Morning' : 'Evening'} routine · +20 stability when completed`}
+            {routine.description || t(`routines.defaultDesc.${routine.type}`)}
           </div>
         </div>
       </div>
@@ -47,8 +49,8 @@ const RoutineCard = ({ routine, onComplete, onEdit, completing }) => {
           type="button"
           className="icon-button"
           onClick={() => onEdit(routine)}
-          aria-label={`Edit ${routine.name}`}
-          title="Edit routine"
+          aria-label={t('routines.edit', { name: routine.name })}
+          title={t('routines.editTitle')}
         >
           <Pencil size={17} />
         </button>
@@ -60,7 +62,7 @@ const RoutineCard = ({ routine, onComplete, onEdit, completing }) => {
           style={{ minWidth: '118px' }}
         >
           {completing ? <Loader2 className="animate-spin" size={18} /> : (
-            <><CheckCircle2 size={18} /> Check in</>
+            <><CheckCircle2 size={18} /> {t('routines.checkIn')}</>
           )}
         </button>
       </div>
@@ -69,6 +71,7 @@ const RoutineCard = ({ routine, onComplete, onEdit, completing }) => {
 };
 
 const Routines = () => {
+  const { t } = useLanguage();
   const [definitions, setDefinitions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -138,17 +141,17 @@ const Routines = () => {
           description: form.description,
           version: editing.version,
         });
-        setNotice(`${form.name} updated.`);
+        setNotice(t('routines.updated', { name: form.name }));
       } else {
         await RoutineService.createDefinition(form);
-        setNotice(`${form.name} created. You can check in today.`);
+        setNotice(t('routines.created', { name: form.name }));
       }
       setShowModal(false);
       setEditing(null);
       setLoading(true);
       setReloadCount((count) => count + 1);
     } catch (err) {
-      setError(err.message || 'Unable to save routine');
+      setError(err.message || t('routines.saveFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -164,9 +167,9 @@ const Routines = () => {
         date: toLocalDateString(new Date()),
         completed: true,
       });
-      setNotice('Routine checked in. Today’s Daily Log will include the +20 stability contribution.');
+      setNotice(t('routines.checkedIn'));
     } catch (err) {
-      setError(`Failed to record routine: ${err.message}`);
+      setError(t('routines.recordFailed', { message: err.message }));
     } finally {
       setCompletingId(null);
     }
@@ -190,7 +193,7 @@ const Routines = () => {
             ? <Sun size={24} style={{ color: 'var(--warning)' }} />
             : <Moon size={24} style={{ color: 'var(--accent-secondary)' }} />}
           <h2 style={{ fontSize: '1.25rem', fontWeight: '700' }}>
-            {isMorning ? 'Morning flow' : 'Evening reflection'}
+            {isMorning ? t('routines.morningFlow') : t('routines.eveningReflection')}
           </h2>
           <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-color)' }} />
         </div>
@@ -198,10 +201,10 @@ const Routines = () => {
         {routines.length === 0 ? (
           <div className="glass" style={{ padding: '2rem', textAlign: 'center', borderRadius: '1.25rem' }}>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: '1.25rem' }}>
-              No {isMorning ? 'morning' : 'evening'} routine yet.
+              {isMorning ? t('routines.noMorning') : t('routines.noEvening')}
             </p>
             <button type="button" className="primary-btn" onClick={() => openCreate(type)}>
-              <Plus size={18} /> Create {isMorning ? 'morning' : 'evening'} routine
+              <Plus size={18} /> {isMorning ? t('routines.createMorning') : t('routines.createEvening')}
             </button>
           </div>
         ) : routines.map((routine) => (
@@ -221,12 +224,12 @@ const Routines = () => {
     <div className="fade-in">
       <header className="page-heading" style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '0.5rem' }}>Routines & Habits</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Create one morning and one evening routine, then check in daily.</p>
+          <h1 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '0.5rem' }}>{t('routines.title')}</h1>
+          <p style={{ color: 'var(--text-secondary)' }}>{t('routines.subtitle')}</p>
         </div>
         {missingTypes.length > 0 && (
           <button type="button" className="primary-btn" onClick={() => openCreate()}>
-            <Plus size={19} /> New routine
+            <Plus size={19} /> {t('routines.new')}
           </button>
         )}
       </header>
@@ -253,9 +256,9 @@ const Routines = () => {
           <TrendingUp size={32} color="var(--accent-primary)" />
         </div>
         <div>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: '700', marginBottom: '0.5rem' }}>How stability is calculated</h3>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: '700', marginBottom: '0.5rem' }}>{t('routines.howTitle')}</h3>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', maxWidth: '680px' }}>
-            Morning and evening check-ins contribute 20 points each. Save the Daily Log after checking in to see today’s current score.
+            {t('routines.howBody')}
           </p>
         </div>
       </div>
@@ -265,10 +268,10 @@ const Routines = () => {
           <div role="dialog" aria-modal="true" aria-labelledby="routine-dialog-title" className="glass fade-in" style={{ width: '100%', maxWidth: '520px', padding: '2rem', borderRadius: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.75rem' }}>
               <div>
-                <h2 id="routine-dialog-title" style={{ fontSize: '1.4rem', fontWeight: 750 }}>{editing ? 'Edit routine' : 'Create routine'}</h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.25rem' }}>One definition is allowed for each time of day.</p>
+                <h2 id="routine-dialog-title" style={{ fontSize: '1.4rem', fontWeight: 750 }}>{editing ? t('routines.dialogEdit') : t('routines.dialogCreate')}</h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.25rem' }}>{t('routines.dialogSub')}</p>
               </div>
-              <button type="button" className="icon-button" onClick={closeModal} aria-label="Close dialog"><X size={19} /></button>
+              <button type="button" className="icon-button" onClick={closeModal} aria-label={t('common.closeDialog')}><X size={19} /></button>
             </div>
 
             {error && (
@@ -279,7 +282,7 @@ const Routines = () => {
 
             <form onSubmit={handleSave}>
               <div style={{ marginBottom: '1.25rem' }}>
-                <label htmlFor="routine-type" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Time of day</label>
+                <label htmlFor="routine-type" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>{t('routines.timeOfDay')}</label>
                 <select
                   id="routine-type"
                   className="input-field"
@@ -288,13 +291,13 @@ const Routines = () => {
                   onChange={(event) => setForm((current) => ({ ...current, type: event.target.value }))}
                 >
                   {(editing ? [editing.type] : missingTypes).map((type) => (
-                    <option key={type} value={type}>{type === 'MORNING' ? 'Morning' : 'Evening'}</option>
+                    <option key={type} value={type}>{type === 'MORNING' ? t('routines.morning') : t('routines.evening')}</option>
                   ))}
                 </select>
               </div>
 
               <div style={{ marginBottom: '1.25rem' }}>
-                <label htmlFor="routine-name" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Name</label>
+                <label htmlFor="routine-name" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>{t('routines.name')}</label>
                 <input
                   id="routine-name"
                   className="input-field"
@@ -303,12 +306,12 @@ const Routines = () => {
                   required
                   maxLength={100}
                   autoFocus
-                  placeholder="e.g. Morning reset"
+                  placeholder={t('routines.namePlaceholder')}
                 />
               </div>
 
               <div style={{ marginBottom: '1.75rem' }}>
-                <label htmlFor="routine-description" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Description</label>
+                <label htmlFor="routine-description" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>{t('routines.description')}</label>
                 <textarea
                   id="routine-description"
                   className="input-field"
@@ -317,15 +320,15 @@ const Routines = () => {
                   maxLength={500}
                   rows={4}
                   style={{ resize: 'vertical' }}
-                  placeholder="What does this routine include?"
+                  placeholder={t('routines.descriptionPlaceholder')}
                 />
               </div>
 
               <div style={{ display: 'flex', gap: '0.75rem' }}>
                 <button type="submit" className="primary-btn" style={{ flex: 1 }} disabled={submitting}>
-                  {submitting ? <Loader2 className="animate-spin" size={19} /> : (editing ? 'Save changes' : 'Create routine')}
+                  {submitting ? <Loader2 className="animate-spin" size={19} /> : (editing ? t('common.saveChanges') : t('routines.dialogCreate'))}
                 </button>
-                <button type="button" className="glass" style={{ minHeight: '44px', padding: '0.7rem 1.25rem', borderRadius: '0.8rem', color: 'var(--text-primary)', cursor: 'pointer' }} onClick={closeModal}>Cancel</button>
+                <button type="button" className="glass" style={{ minHeight: '44px', padding: '0.7rem 1.25rem', borderRadius: '0.8rem', color: 'var(--text-primary)', cursor: 'pointer' }} onClick={closeModal}>{t('common.cancel')}</button>
               </div>
             </form>
           </div>

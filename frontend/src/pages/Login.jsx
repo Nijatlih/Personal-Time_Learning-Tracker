@@ -3,8 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import AuthService from '../api/AuthService';
 import { useAuth } from '../hooks/useAuth';
 import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { useLanguage } from '../hooks/useLanguage';
 
 const Login = () => {
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,7 +23,7 @@ const Login = () => {
       login({ email, userId: data.userId }, data.accessToken, data.refreshToken);
       navigate('/');
     } catch (err) {
-      setError(err.message || 'Login failed');
+      setError(err.message || t('auth.loginFailed'));
     } finally {
       setLoading(false);
     }
@@ -45,7 +47,7 @@ const Login = () => {
             WebkitTextFillColor: 'transparent',
             marginBottom: '0.5rem'
           }}>PTLT</div>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Personal Time & Learning Tracker</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>{t('auth.appName')}</p>
         </div>
 
         {error && (
@@ -64,7 +66,7 @@ const Login = () => {
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Email Address</label>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>{t('auth.email')}</label>
             <div style={{ position: 'relative' }}>
               <Mail size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
               <input
@@ -81,7 +83,7 @@ const Login = () => {
           </div>
 
           <div style={{ marginBottom: '2rem' }}>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Password</label>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>{t('auth.password')}</label>
             <div style={{ position: 'relative' }}>
               <Lock size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
               <input
@@ -118,14 +120,14 @@ const Login = () => {
           >
             {loading ? <Loader2 className="animate-spin" size={20} /> : (
               <>
-                Sign In <ArrowRight size={18} />
+                {t('auth.signIn')} <ArrowRight size={18} />
               </>
             )}
           </button>
         </form>
 
         <p style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-          New here? <Link to="/register" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>Create an account</Link>
+          {t('auth.newHere')} <Link to="/register" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>{t('auth.createAccountLink')}</Link>
         </p>
       </div>
     </div>

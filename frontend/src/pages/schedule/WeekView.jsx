@@ -6,12 +6,12 @@ import TaskService from '../../api/TaskService';
 import TimelineGrid from '../../components/schedule/TimelineGrid';
 import TimeBlockModal from '../../components/schedule/TimeBlockModal';
 import {
-  toLocalDateString, addDays, startOfWeek, sumBlockMinutes, formatDuration,
+  toLocalDateString, addDays, startOfWeek, sumBlockMinutes, formatDuration, DAY_ORDER,
 } from '../../utils/schedule';
-
-const DAY_LABELS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+import { useLanguage } from '../../hooks/useLanguage';
 
 const WeekView = () => {
+  const { t } = useLanguage();
   const [weekOffset, setWeekOffset] = useState(0);
   const [blocks, setBlocks] = useState([]);
   const [tasks, setTasks] = useState([]);
@@ -59,7 +59,7 @@ const WeekView = () => {
         ...block,
         taskTitle: block.taskId ? tasksById.get(block.taskId)?.title : null,
       }));
-    return { date, label: `${DAY_LABELS[index]} ${date.slice(5)}`, blocks: dayBlocks };
+    return { date, label: `${t(`dayShort.${DAY_ORDER[index]}`)} ${date.slice(5)}`, blocks: dayBlocks };
   });
 
   if (loading) return (
@@ -72,16 +72,16 @@ const WeekView = () => {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <button type="button" className="icon-button" onClick={() => setWeekOffset((n) => n - 1)} aria-label="Previous week">
+          <button type="button" className="icon-button" onClick={() => setWeekOffset((n) => n - 1)} aria-label={t('schedule.prevWeek')}>
             <ChevronLeft size={18} />
           </button>
           <span style={{ fontSize: '0.875rem', fontWeight: 700 }}>{weekStartStr} – {weekEndStr}</span>
-          <button type="button" className="icon-button" onClick={() => setWeekOffset((n) => n + 1)} aria-label="Next week">
+          <button type="button" className="icon-button" onClick={() => setWeekOffset((n) => n + 1)} aria-label={t('schedule.nextWeek')}>
             <ChevronRight size={18} />
           </button>
         </div>
         <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-          本周已排 {formatDuration(sumBlockMinutes(blocks))}
+          {t('schedule.weekScheduled', { duration: formatDuration(sumBlockMinutes(blocks)) })}
         </div>
       </div>
 

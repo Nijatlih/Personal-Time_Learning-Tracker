@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import TaskService from '../api/TaskService';
 import { Plus, CheckCircle2, Circle, Tag, AlertCircle, Loader2, X } from 'lucide-react';
+import { useLanguage } from '../hooks/useLanguage';
 
 const Tasks = () => {
+  const { t } = useLanguage();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -66,7 +68,7 @@ const Tasks = () => {
       await TaskService.complete(id);
     } catch (err) {
       // 措辞：这里跟 sync 无关（sync 模块已删除，见 adr/0004），失败的就是完成任务本身
-      alert('Failed to complete task: ' + err.message);
+      alert(t('tasks.completeFailed', { message: err.message }));
       reload(); // 失败时回滚
     }
   };
@@ -81,11 +83,11 @@ const Tasks = () => {
     <div className="fade-in">
       <div className="page-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
         <div>
-          <h1 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '0.5rem' }}>System Tasks</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>Manage your core objectives and daily operations.</p>
+          <h1 style={{ fontSize: '2rem', fontWeight: '800', marginBottom: '0.5rem' }}>{t('tasks.title')}</h1>
+          <p style={{ color: 'var(--text-secondary)' }}>{t('tasks.subtitle')}</p>
         </div>
         <button onClick={() => setShowModal(true)} className="primary-btn">
-          <Plus size={20} /> New Task
+          <Plus size={20} /> {t('tasks.new')}
         </button>
       </div>
 
@@ -99,8 +101,8 @@ const Tasks = () => {
         {tasks.length === 0 ? (
           <div className="glass" style={{ padding: '4rem', textAlign: 'center', borderRadius: '1.5rem' }}>
             <Circle size={44} style={{ marginBottom: '1rem', color: 'var(--accent-primary)' }} aria-hidden="true" />
-            <h3 style={{ marginBottom: '0.5rem' }}>No Active Tasks</h3>
-            <p style={{ color: 'var(--text-secondary)' }}>Your system is clear. Add a task to start tracking.</p>
+            <h3 style={{ marginBottom: '0.5rem' }}>{t('tasks.emptyTitle')}</h3>
+            <p style={{ color: 'var(--text-secondary)' }}>{t('tasks.emptyBody')}</p>
           </div>
         ) : (
           tasks.map(task => (
@@ -116,7 +118,7 @@ const Tasks = () => {
                 type="button"
                 onClick={() => handleToggleComplete(task.id, task.status)}
                 disabled={task.status === 'COMPLETED'}
-                aria-label={task.status === 'COMPLETED' ? `${task.title} completed` : `Complete ${task.title}`}
+                aria-label={task.status === 'COMPLETED' ? t('tasks.completed', { title: task.title }) : t('tasks.complete', { title: task.title })}
                 style={{ width: '44px', height: '44px', display: 'grid', placeItems: 'center', cursor: 'pointer', color: task.status === 'COMPLETED' ? 'var(--success)' : 'var(--text-secondary)', background: 'transparent', border: 0, borderRadius: '0.75rem' }}
               >
                 {task.status === 'COMPLETED' ? <CheckCircle2 size={26} /> : <Circle size={26} />}
@@ -145,7 +147,7 @@ const Tasks = () => {
                   border: '1px solid var(--accent-primary)',
                   color: 'var(--accent-primary)', fontSize: '0.75rem', fontWeight: '700'
                 }}>
-                  <Tag size={12} /> CORE
+                  <Tag size={12} /> {t('tasks.core')}
                 </div>
               )}
             </div>
@@ -162,33 +164,33 @@ const Tasks = () => {
         }}>
           <div className="glass fade-in" style={{ width: '100%', maxWidth: '500px', padding: '2.5rem', borderRadius: '2rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: '700' }}>New Objective</h2>
-              <button type="button" className="icon-button" onClick={() => setShowModal(false)} aria-label="Close dialog">
+              <h2 style={{ fontSize: '1.5rem', fontWeight: '700' }}>{t('tasks.modalTitle')}</h2>
+              <button type="button" className="icon-button" onClick={() => setShowModal(false)} aria-label={t('common.closeDialog')}>
                 <X size={20} />
               </button>
             </div>
             
             <form onSubmit={handleCreateTask}>
               <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Title</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>{t('tasks.fieldTitle')}</label>
                 <input 
                   type="text" 
                   className="input-field"
                   value={newTask.title}
                   onChange={e => setNewTask({...newTask, title: e.target.value})}
                   required
-                  placeholder="What is the objective?"
+                  placeholder={t('tasks.titlePlaceholder')}
                 />
               </div>
               
               <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Description</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>{t('tasks.fieldDescription')}</label>
                 <textarea 
                   className="input-field"
                   style={{ minHeight: '100px', resize: 'vertical' }}
                   value={newTask.description}
                   onChange={e => setNewTask({...newTask, description: e.target.value})}
-                  placeholder="Additional context (optional)..."
+                  placeholder={t('tasks.descriptionPlaceholder')}
                 />
               </div>
 
@@ -200,15 +202,15 @@ const Tasks = () => {
                   onChange={e => setNewTask({...newTask, isCoreTask: e.target.checked})}
                   style={{ width: '20px', height: '20px', accentColor: 'var(--accent-primary)' }}
                 />
-                <label htmlFor="core-check" style={{ fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer' }}>Mark as Core System Task</label>
+                <label htmlFor="core-check" style={{ fontSize: '0.875rem', fontWeight: '600', cursor: 'pointer' }}>{t('tasks.markCore')}</label>
               </div>
 
               <div style={{ display: 'flex', gap: '1rem' }}>
                 <button type="submit" className="primary-btn" style={{ flex: 1 }} disabled={submitting}>
-                  {submitting ? <Loader2 className="animate-spin" size={20} /> : 'Initialize Task'}
+                  {submitting ? <Loader2 className="animate-spin" size={20} /> : t('tasks.initialize')}
                 </button>
                 <button type="button" className="glass" style={{ flex: 1, minHeight: '44px', borderRadius: '0.75rem', color: 'var(--text-primary)', cursor: 'pointer' }} onClick={() => setShowModal(false)}>
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               </div>
             </form>

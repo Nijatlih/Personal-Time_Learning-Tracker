@@ -6,8 +6,10 @@ import TaskService from '../../api/TaskService';
 import TimelineGrid from '../../components/schedule/TimelineGrid';
 import TimeBlockModal from '../../components/schedule/TimeBlockModal';
 import { toLocalDateString, sumBlockMinutes, formatDuration } from '../../utils/schedule';
+import { useLanguage } from '../../hooks/useLanguage';
 
 const TodayView = () => {
+  const { t } = useLanguage();
   const [blocks, setBlocks] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +57,7 @@ const TodayView = () => {
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
         <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-          今天已排 {formatDuration(sumBlockMinutes(blocks))}
+          {t('schedule.todayScheduled', { duration: formatDuration(sumBlockMinutes(blocks)) })}
         </div>
       </div>
 
@@ -66,7 +68,7 @@ const TodayView = () => {
       )}
 
       <TimelineGrid
-        days={[{ date: today, label: '今天', blocks: enrichedBlocks }]}
+        days={[{ date: today, label: t('schedule.today'), blocks: enrichedBlocks }]}
         onSlotClick={(date, time) => setModalState({ mode: 'create', date, startTime: time })}
         onBlockClick={(block) => setModalState({ mode: 'edit', block })}
       />

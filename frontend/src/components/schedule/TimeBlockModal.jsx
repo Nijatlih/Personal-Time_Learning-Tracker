@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Loader2, X, Trash2 } from 'lucide-react';
 import TimeBlockService from '../../api/TimeBlockService';
 import { addMinutesToTime } from '../../utils/schedule';
+import { useLanguage } from '../../hooks/useLanguage';
 
 const buildInitialForm = (mode, startTime, block) => {
   if (mode === 'edit' && block) {
@@ -26,6 +27,7 @@ const buildInitialForm = (mode, startTime, block) => {
 // mode: 'create' | 'edit'. Create needs `date` + `startTime` (from the clicked slot).
 // Edit needs `block` (the full TimeBlockResponse, including `version`).
 const TimeBlockModal = ({ mode, date, startTime, block, tasks, onClose, onSaved }) => {
+  const { t } = useLanguage();
   const [form, setForm] = useState(() => buildInitialForm(mode, startTime, block));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -56,21 +58,21 @@ const TimeBlockModal = ({ mode, date, startTime, block, tasks, onClose, onSaved 
       }
       onSaved();
     } catch (err) {
-      setError(err.message || 'Unable to save time block');
+      setError(err.message || t('schedule.blockSaveFailed'));
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!window.confirm('Delete this time block?')) return;
+    if (!window.confirm(t('schedule.blockConfirmDelete'))) return;
     setSubmitting(true);
     setError(null);
     try {
       await TimeBlockService.delete(block.id);
       onSaved();
     } catch (err) {
-      setError(err.message || 'Unable to delete time block');
+      setError(err.message || t('schedule.blockDeleteFailed'));
       setSubmitting(false);
     }
   };
@@ -80,9 +82,9 @@ const TimeBlockModal = ({ mode, date, startTime, block, tasks, onClose, onSaved 
       <div role="dialog" aria-modal="true" aria-labelledby="time-block-dialog-title" className="glass fade-in" style={{ width: '100%', maxWidth: '480px', padding: '2rem', borderRadius: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
           <h2 id="time-block-dialog-title" style={{ fontSize: '1.3rem', fontWeight: 750 }}>
-            {mode === 'create' ? 'New time block' : 'Edit time block'}
+            {mode === 'create' ? t('schedule.blockNew') : t('schedule.blockEdit')}
           </h2>
-          <button type="button" className="icon-button" onClick={onClose} aria-label="Close dialog"><X size={19} /></button>
+          <button type="button" className="icon-button" onClick={onClose} aria-label={t('common.closeDialog')}><X size={19} /></button>
         </div>
 
         {error && (
@@ -94,7 +96,7 @@ const TimeBlockModal = ({ mode, date, startTime, block, tasks, onClose, onSaved 
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.25rem' }}>
             <div style={{ flex: 1 }}>
-              <label htmlFor="block-start" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Start</label>
+              <label htmlFor="block-start" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>{t('schedule.start')}</label>
               <input
                 id="block-start"
                 type="time"
@@ -105,7 +107,7 @@ const TimeBlockModal = ({ mode, date, startTime, block, tasks, onClose, onSaved 
               />
             </div>
             <div style={{ flex: 1 }}>
-              <label htmlFor="block-end" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>End</label>
+              <label htmlFor="block-end" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>{t('schedule.end')}</label>
               <input
                 id="block-end"
                 type="time"
@@ -118,19 +120,19 @@ const TimeBlockModal = ({ mode, date, startTime, block, tasks, onClose, onSaved 
           </div>
 
           <div style={{ marginBottom: '1.25rem' }}>
-            <label htmlFor="block-title" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Title</label>
+            <label htmlFor="block-title" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>{t('schedule.fieldTitle')}</label>
             <input
               id="block-title"
               className="input-field"
               value={form.title}
               onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
               maxLength={200}
-              placeholder="What are you doing?"
+              placeholder={t('schedule.blockTitlePlaceholder')}
             />
           </div>
 
           <div style={{ marginBottom: '1.25rem' }}>
-            <label htmlFor="block-description" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Description</label>
+            <label htmlFor="block-description" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>{t('schedule.fieldDescription')}</label>
             <textarea
               id="block-description"
               className="input-field"
@@ -143,35 +145,35 @@ const TimeBlockModal = ({ mode, date, startTime, block, tasks, onClose, onSaved 
           </div>
 
           <div style={{ marginBottom: '1.75rem' }}>
-            <label htmlFor="block-task" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Linked task (optional)</label>
+            <label htmlFor="block-task" style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>{t('schedule.linkedTask')}</label>
             <select
               id="block-task"
               className="input-field"
               value={form.taskId}
               onChange={(event) => setForm((current) => ({ ...current, taskId: event.target.value }))}
             >
-              <option value="" disabled={hasExistingLink}>None</option>
+              <option value="" disabled={hasExistingLink}>{t('schedule.none')}</option>
               {availableTasks.map((task) => (
                 <option key={task.id} value={task.id}>{task.title}</option>
               ))}
             </select>
             {hasExistingLink && (
               <p style={{ marginTop: '0.4rem', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                Can&apos;t unlink an existing task here yet — delete and recreate the block if you need to remove the link.
+                {t('schedule.cantUnlink')}
               </p>
             )}
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             <button type="submit" className="primary-btn" style={{ flex: 1 }} disabled={submitting}>
-              {submitting ? <Loader2 className="animate-spin" size={19} /> : (mode === 'create' ? 'Create block' : 'Save changes')}
+              {submitting ? <Loader2 className="animate-spin" size={19} /> : (mode === 'create' ? t('schedule.blockCreate') : t('common.saveChanges'))}
             </button>
             {mode === 'edit' && (
-              <button type="button" className="icon-button" onClick={handleDelete} disabled={submitting} aria-label="Delete time block" title="Delete">
+              <button type="button" className="icon-button" onClick={handleDelete} disabled={submitting} aria-label={t('schedule.blockDelete')} title={t('common.delete')}>
                 <Trash2 size={18} color="var(--danger)" />
               </button>
             )}
-            <button type="button" className="glass" style={{ minHeight: '44px', padding: '0.7rem 1.25rem', borderRadius: '0.8rem', color: 'var(--text-primary)', cursor: 'pointer' }} onClick={onClose}>Cancel</button>
+            <button type="button" className="glass" style={{ minHeight: '44px', padding: '0.7rem 1.25rem', borderRadius: '0.8rem', color: 'var(--text-primary)', cursor: 'pointer' }} onClick={onClose}>{t('common.cancel')}</button>
           </div>
         </form>
       </div>

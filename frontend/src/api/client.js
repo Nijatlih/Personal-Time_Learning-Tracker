@@ -1,4 +1,8 @@
 import axios from 'axios';
+import { getStoredLang, translate } from '../i18n';
+
+// 拦截器在 React 之外，取不到 useLanguage，所以按上次保存的语言翻译。
+const tr = (key) => translate(getStoredLang(), key);
 
 // 建立一个更稳健的 API 实例
 const client = axios.create({
@@ -84,7 +88,7 @@ client.interceptors.response.use(
     // 处理网络错误（如后端没开）
     if (!error.response) {
       console.error('[API Network Error] Backend might be down:', error.message);
-      return Promise.reject({ message: '无法连接到服务器，请检查后端是否启动。' });
+      return Promise.reject({ message: tr('error.network') });
     }
 
     // 处理 401 认证失效：先试着刷新一次，失败才踢回登录页。
@@ -101,18 +105,18 @@ client.interceptors.response.use(
       } catch {
         console.warn('[API Auth Error] Refresh failed, signing out.');
         redirectToLogin();
-        return Promise.reject({ message: '登录已过期，请重新登录。', status: 401 });
+        return Promise.reject({ message: tr('error.sessionExpired'), status: 401 });
       }
     }
 
     // 刷新之后仍然 401（或刷新接口自己 401）：只能重新登录
     if (error.response.status === 401) {
       redirectToLogin();
-      return Promise.reject({ message: '登录已过期，请重新登录。', status: 401 });
+      return Promise.reject({ message: tr('error.sessionExpired'), status: 401 });
     }
 
     // 处理其他业务错误
-    const errorMessage = error.response.data?.error?.message || '未知系统错误';
+    const errorMessage = error.response.data?.error?.message || tr('error.unknown');
     console.error(`[API Business Error] ${originalRequest.url}:`, errorMessage);
     return Promise.reject({ message: errorMessage, status: error.response.status });
   }
