@@ -20,10 +20,11 @@ PTLT 是一个自用的个人时间、学习与系统稳定度追踪工具。
 - Daily Log（日常记录与稳定度评分）
 - Tasks
 - Routines 与打卡
+- Schedule（今天 / 本周的时间块，以及每周固定模板；Time Block 与 Schedule Slot 的前端）
 - Analytics
 - 中英文界面切换（默认英文，右上角按钮切换，选择保存在浏览器 `localStorage` 的 `lang`）
 
-后端另外提供 Time Block、Schedule Slot、Bootcamp、Alert、Workspace 等 API，暂时没有对应的前端页面。
+后端另外提供 Bootcamp、Alert、Workspace 等 API，暂时没有对应的前端页面。
 
 ---
 
